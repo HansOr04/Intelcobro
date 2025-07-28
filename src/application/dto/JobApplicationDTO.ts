@@ -34,11 +34,11 @@ export interface JobApplicationResponseDTO {
   sessionId: string;
   email: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber?: string | undefined; // Hacer explícito que puede ser undefined
   position: string;
   status: string;
   submittedAt: string;
-  processedAt?: string;
+  processedAt?: string | undefined; // Hacer explícito que puede ser undefined
   emailSent: boolean;
   followUpScheduled: boolean;
   applicationNumber: string;

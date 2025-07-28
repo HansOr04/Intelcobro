@@ -25,7 +25,7 @@ export interface SpinWheelOptions {
 export interface SpinWheelResult {
   result: WheelSpinResponseDTO;
   canSpinAgain: boolean;
-  nextSpinAllowedAt?: Date | undefined;
+  nextSpinAllowedAt?: Date;
   spinsRemainingToday: number;
   processingTime: number;
   metadata?: Record<string, any>;
@@ -48,7 +48,7 @@ interface UserSpinHistory {
   sessionId: string;
   spinsToday: WheelResult[];
   spinsInSession: WheelResult[];
-  lastSpinAt?: Date | undefined;
+  lastSpinAt?: Date;
   totalSpins: number;
 }
 
@@ -120,7 +120,7 @@ export class SpinWheelUseCase {
       return {
         result: this.toResponseDTO(wheelResult, nextSpinInfo.nextSpinAllowedAt),
         canSpinAgain: nextSpinInfo.canSpinAgain,
-        nextSpinAllowedAt: nextSpinInfo.nextSpinAllowedAt || undefined,
+        nextSpinAllowedAt: nextSpinInfo.nextSpinAllowedAt,
         spinsRemainingToday: nextSpinInfo.spinsRemainingToday,
         processingTime,
         metadata: {
@@ -320,7 +320,7 @@ export class SpinWheelUseCase {
     wheelResult: WheelResult
   ): {
     canSpinAgain: boolean;
-    nextSpinAllowedAt?: Date | undefined;
+    nextSpinAllowedAt?: Date;
     spinsRemainingToday: number;
   } {
     const now = new Date();
@@ -353,7 +353,7 @@ export class SpinWheelUseCase {
 
     return {
       canSpinAgain,
-      nextSpinAllowedAt: nextSpinAllowedAt || undefined,
+      nextSpinAllowedAt,
       spinsRemainingToday
     };
   }
@@ -563,10 +563,10 @@ export class SpinWheelUseCase {
     totalSpins: number;
     totalWins: number;
     canSpin: boolean;
-    nextSpinAllowedAt?: string | undefined;
+    nextSpinAllowedAt?: string;
   }> {
     // En una implementación real, esto consultaría la base de datos
-    const history = await this.loadUserSpinHistory({ sessionId, userId: userId || undefined });
+    const history = await this.loadUserSpinHistory({ sessionId, userId });
     const limits = this.getSpinLimits();
     
     const canSpin = this.checkCanSpin(history, limits);
@@ -595,7 +595,7 @@ export class SpinWheelUseCase {
       totalSpins: history.totalSpins,
       totalWins,
       canSpin,
-      nextSpinAllowedAt: nextSpinAllowedAt || undefined
+      nextSpinAllowedAt
     };
   }
 
@@ -705,7 +705,7 @@ export class SpinWheelUseCase {
     // En una implementación real, esto resetearía los contadores en BD
     logger.info('Límites de giro reseteados', {
       sessionId,
-      userId: userId || undefined,
+      userId,
       resetBy: 'admin'
     });
 

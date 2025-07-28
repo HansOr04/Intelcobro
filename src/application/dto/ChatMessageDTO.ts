@@ -24,9 +24,9 @@ export interface ChatMessageResponseDTO {
   message: string;
   timestamp: string;
   isVoice: boolean;
-  audioUrl?: string;
-  metadata?: Record<string, any>;
-  userId?: string;
+  audioUrl?: string | undefined; // Hacer explícito que puede ser undefined
+  metadata?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
+  userId?: string | undefined; // Hacer explícito que puede ser undefined
 }
 
 /**

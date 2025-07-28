@@ -7,10 +7,10 @@ import { WheelSection } from '../../domain/enums/WheelSection';
  */
 export interface WheelSpinRequestDTO {
   sessionId: string;
-  userId?: string;
-  userIp?: string;
-  userAgent?: string;
-  metadata?: Record<string, any>;
+  userId?: string | undefined; // Hacer explícito que puede ser undefined
+  userIp?: string | undefined; // Hacer explícito que puede ser undefined
+  userAgent?: string | undefined; // Hacer explícito que puede ser undefined
+  metadata?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
 }
 
 /**
@@ -26,9 +26,9 @@ export interface WheelSpinResponseDTO {
   timestamp: string;
   isWinning: boolean;
   resultMessage: string;
-  discountCode?: string;
-  expiresAt?: string;
-  nextSpinAllowedAt?: string;
+  discountCode?: string | undefined; // Hacer explícito que puede ser undefined
+  expiresAt?: string | undefined; // Hacer explícito que puede ser undefined
+  nextSpinAllowedAt?: string | undefined; // Hacer explícito que puede ser undefined
 }
 
 /**

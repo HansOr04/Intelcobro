@@ -8,7 +8,7 @@ import { DiscountPercentage } from '../../../domain/value-objects/DiscountPercen
 import { DiscountFormRequestDTO, DiscountFormResponseDTO } from '../../dto/DiscountFormDTO';
 import { IEmailService } from '../../interfaces/services/IEmailService';
 import { IAIService } from '../../interfaces/services/IAIService';
-import { ValidationException } from '../../exceptions/ValidationException';
+import { ValidationException, ValidationErrorType } from '../../exceptions/ValidationException';
 import { EmailServiceException } from '../../exceptions/EmailServiceException';
 import { logger } from '../../../shared/utils/Logger';
 import { randomGenerator } from '../../../shared/utils/RandomGenerator';
@@ -50,7 +50,7 @@ export interface SubmitDiscountFormResult {
 interface DiscountInfo {
   percentage: number;
   source: 'wheel' | 'budget' | 'company_size' | 'urgency' | 'none';
-  code?: string | undefined;
+  code?: string;
   description: string;
   validUntil: Date;
 }
@@ -84,8 +84,8 @@ interface DiscountRequestProcessingContext {
   submission: FormSubmission;
   service: ServiceInfo;
   customerEmail: Email;
-  customerPhone?: PhoneNumber | undefined;
-  wheelDiscount?: WheelDiscountInfo | undefined;
+  customerPhone?: PhoneNumber;
+  wheelDiscount?: WheelDiscountInfo;
   calculatedDiscount: DiscountInfo;
   estimatedValue: EstimatedValue;
   adminEmails: string[];
@@ -333,8 +333,8 @@ export class SubmitDiscountFormUseCase {
       submission,
       service,
       customerEmail,
-      customerPhone: customerPhone || undefined,
-      wheelDiscount: wheelDiscount || undefined,
+      customerPhone,
+      wheelDiscount,
       calculatedDiscount,
       estimatedValue,
       adminEmails: options.adminEmails || this.defaultAdminEmails,
@@ -370,7 +370,7 @@ export class SubmitDiscountFormUseCase {
   private calculateDiscount(
     request: DiscountFormRequestDTO,
     service: ServiceInfo,
-    wheelDiscount?: WheelDiscountInfo | undefined
+    wheelDiscount?: WheelDiscountInfo
   ): DiscountInfo {
     let percentage = 0;
     let source: DiscountInfo['source'] = 'none';
@@ -421,7 +421,7 @@ export class SubmitDiscountFormUseCase {
     return {
       percentage,
       source,
-      code: code || undefined,
+      code,
       description,
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 días
     };
@@ -753,8 +753,8 @@ export class SubmitDiscountFormUseCase {
     const emailContent = {
       to: context.adminEmails,
       subject: `Nueva solicitud: ${context.service.name} - ${context.estimatedValue.finalPrice.toLocaleString()} - ${context.submission.formData.fullName}`,
-      html: this.generateConfirmationEmailHtml(context, quotationNumber), // Usar método correcto
-      text: this.generateConfirmationEmailText(context, quotationNumber) // Usar método correcto
+      html: this.generateNotificationEmailHtml(context, quotationNumber),
+      text: this.generateNotificationEmailText(context, quotationNumber)
     };
 
     await this.emailService.sendEmail(emailContent);
@@ -839,11 +839,11 @@ export class SubmitDiscountFormUseCase {
       sessionId: submission.sessionId,
       email: submission.email.value,
       fullName: submission.formData.fullName,
-      phoneNumber: submission.phoneNumber?.value || undefined,
+      phoneNumber: submission.phoneNumber?.value,
       serviceInterest: submission.formData.serviceInterest,
       status: submission.status,
       submittedAt: submission.timestamp.toISOString(),
-      processedAt: submission.processedAt?.toISOString() || undefined,
+      processedAt: submission.processedAt?.toISOString(),
       emailSent: submission.emailSent,
       followUpScheduled: submission.followUpScheduled,
       quotationNumber: this.generateQuotationNumber(submission),
@@ -931,6 +931,67 @@ Próximos pasos:
 Saludos,
 Equipo de Ventas
 Intelcobro
+    `.trim();
+  }
+
+  /**
+   * Genera HTML para email de notificación
+   */
+  private generateNotificationEmailHtml(
+    context: DiscountRequestProcessingContext,
+    quotationNumber: string
+  ): string {
+    return `
+      <h2>Nueva Solicitud de Descuento - ${context.service.name}</h2>
+      <p><strong>Cliente:</strong> ${context.submission.formData.fullName}</p>
+      <p><strong>Email:</strong> ${context.customerEmail.value}</p>
+      <p><strong>Teléfono:</strong> ${context.customerPhone?.toDisplayFormat() || 'No proporcionado'}</p>
+      <p><strong>Servicio:</strong> ${context.service.name}</p>
+      <p><strong>Cotización:</strong> ${quotationNumber}</p>
+      
+      <h3>Detalles del Proyecto:</h3>
+      <p><strong>Empresa:</strong> ${context.submission.formData.companyName || 'No especificada'}</p>
+      <p><strong>Presupuesto:</strong> ${context.submission.formData.budget || 'No especificado'}</p>
+      <p><strong>Timeline:</strong> ${context.submission.formData.timeline || 'No especificado'}</p>
+      
+      <h3>Análisis de Descuento:</h3>
+      <p><strong>Descuento aplicado:</strong> ${context.calculatedDiscount.percentage}%</p>
+      <p><strong>Precio estimado:</strong> ${context.estimatedValue.finalPrice.toLocaleString()}</p>
+      <p><strong>Requiere seguimiento urgente:</strong> ${this.requiresUrgentFollowUp(context) ? 'Sí' : 'No'}</p>
+      
+      <hr>
+      <p><em>Solicitud enviada desde el sistema de Intelcobro</em></p>
+    `;
+  }
+
+  /**
+   * Genera texto plano para email de notificación
+   */
+  private generateNotificationEmailText(
+    context: DiscountRequestProcessingContext,
+    quotationNumber: string
+  ): string {
+    return `
+Nueva Solicitud de Descuento - ${context.service.name}
+
+Cliente: ${context.submission.formData.fullName}
+Email: ${context.customerEmail.value}
+Teléfono: ${context.customerPhone?.toDisplayFormat() || 'No proporcionado'}
+Servicio: ${context.service.name}
+Cotización: ${quotationNumber}
+
+Detalles del Proyecto:
+Empresa: ${context.submission.formData.companyName || 'No especificada'}
+Presupuesto: ${context.submission.formData.budget || 'No especificado'}
+Timeline: ${context.submission.formData.timeline || 'No especificado'}
+
+Análisis de Descuento:
+Descuento aplicado: ${context.calculatedDiscount.percentage}%
+Precio estimado: ${context.estimatedValue.finalPrice.toLocaleString()}
+Requiere seguimiento urgente: ${this.requiresUrgentFollowUp(context) ? 'Sí' : 'No'}
+
+---
+Solicitud enviada desde el sistema de Intelcobro
     `.trim();
   }
 }

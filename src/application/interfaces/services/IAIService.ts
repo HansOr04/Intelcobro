@@ -21,12 +21,22 @@ export interface AIGenerationConfig {
  */
 export interface AIMessageContext {
   sessionId: string;
-  userId?: string;
-  messageHistory?: AIMessage[];
-  userProfile?: Record<string, any>;
-  businessContext?: string;
-  language?: string;
-  metadata?: Record<string, any>;
+  userId?: string | undefined; // Hacer explícito que puede ser undefined
+  messageHistory?: AIMessage[] | undefined; // Hacer explícito que puede ser undefined
+  userProfile?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
+  businessContext?: string | undefined; // Hacer explícito que puede ser undefined
+  language?: string | undefined; // Hacer explícito que puede ser undefined
+  metadata?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
+}
+export interface AIRequestContext {
+  messageId?: string | undefined; // Hacer explícito que puede ser undefined
+  sessionId?: string | undefined; // Hacer explícito que puede ser undefined
+  userId?: string | undefined; // Hacer explícito que puede ser undefined
+  prompt?: string | undefined; // Hacer explícito que puede ser undefined
+  model?: string | undefined; // Hacer explícito que puede ser undefined
+  temperature?: number | undefined; // Hacer explícito que puede ser undefined
+  maxTokens?: number | undefined; // Hacer explícito que puede ser undefined
+  metadata?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
 }
 
 /**
