@@ -28,11 +28,11 @@ export interface SendMessageOptions {
 export interface SendMessageResult {
   userMessage: ChatMessageResponseDTO;
   assistantMessage: ChatMessageResponseDTO;
-  audioUrl?: string;
+  audioUrl?: string | undefined;
   processingTime: number;
-  tokensUsed?: number;
-  confidence?: number;
-  metadata?: Record<string, any>;
+  tokensUsed?: number | undefined;
+  confidence?: number | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
@@ -40,13 +40,13 @@ export interface SendMessageResult {
  */
 interface MessageProcessingContext {
   sessionId: string;
-  userId?: string;
+  userId?: string | undefined;
   messageHistory: ChatMessage[];
-  userProfile?: Record<string, any>;
+  userProfile?: Record<string, any> | undefined;
   businessContext: string;
   language: string;
   isVoiceMessage: boolean;
-  audioData?: Buffer;
+  audioData?: Buffer | undefined;
 }
 
 /**
@@ -105,10 +105,10 @@ export class SendMessageUseCase {
       return {
         userMessage: this.toResponseDTO(userMessage),
         assistantMessage: this.toResponseDTO(assistantMessage, audioUrl),
-        audioUrl,
+        audioUrl: audioUrl || undefined,
         processingTime,
-        tokensUsed: aiResponse.tokensUsed?.total,
-        confidence: aiResponse.confidence,
+        tokensUsed: aiResponse.tokensUsed?.total || undefined,
+        confidence: aiResponse.confidence || undefined,
         metadata: {
           aiModel: aiResponse.model,
           finishReason: aiResponse.finishReason,
@@ -169,7 +169,7 @@ export class SendMessageUseCase {
     
     const context: MessageProcessingContext = {
       sessionId: request.sessionId,
-      userId: request.userId,
+      userId: request.userId || undefined,
       messageHistory,
       businessContext: this.getBusinessContext(),
       language: 'es',
@@ -223,9 +223,9 @@ export class SendMessageUseCase {
     // Crear contexto para IA
     const aiContext: AIMessageContext = {
       sessionId: context.sessionId,
-      userId: context.userId,
+      userId: context.userId || undefined,
       messageHistory: this.convertToAIMessages(context.messageHistory),
-      userProfile: context.userProfile,
+      userProfile: context.userProfile || undefined,
       businessContext: options.customPrompt || context.businessContext,
       language: context.language,
       metadata: {
@@ -252,7 +252,7 @@ export class SendMessageUseCase {
       throw AIServiceException.unknown('openai', error, {
         messageId: userMessage.id,
         sessionId: context.sessionId,
-        userId: context.userId,
+        userId: context.userId || undefined,
         prompt: userMessage.message.substring(0, 100)
       });
     }
@@ -282,8 +282,7 @@ export class SendMessageUseCase {
         confidence: aiResponse.confidence,
         finishReason: aiResponse.finishReason,
         generatedAt: new Date().toISOString()
-      },
-      undefined
+      }
     );
   }
 
@@ -362,9 +361,9 @@ export class SendMessageUseCase {
       message: message.message,
       timestamp: message.timestamp.toISOString(),
       isVoice: message.isVoice,
-      audioUrl,
-      metadata: message.metadata,
-      userId: message.userId
+      audioUrl: audioUrl || undefined,
+      metadata: message.metadata || undefined,
+      userId: message.userId || undefined
     };
   }
 

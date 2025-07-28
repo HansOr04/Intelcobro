@@ -25,7 +25,7 @@ export interface SpinWheelOptions {
 export interface SpinWheelResult {
   result: WheelSpinResponseDTO;
   canSpinAgain: boolean;
-  nextSpinAllowedAt?: Date;
+  nextSpinAllowedAt?: Date | undefined;
   spinsRemainingToday: number;
   processingTime: number;
   metadata?: Record<string, any>;
@@ -48,7 +48,7 @@ interface UserSpinHistory {
   sessionId: string;
   spinsToday: WheelResult[];
   spinsInSession: WheelResult[];
-  lastSpinAt?: Date;
+  lastSpinAt?: Date | undefined;
   totalSpins: number;
 }
 
@@ -120,7 +120,7 @@ export class SpinWheelUseCase {
       return {
         result: this.toResponseDTO(wheelResult, nextSpinInfo.nextSpinAllowedAt),
         canSpinAgain: nextSpinInfo.canSpinAgain,
-        nextSpinAllowedAt: nextSpinInfo.nextSpinAllowedAt,
+        nextSpinAllowedAt: nextSpinInfo.nextSpinAllowedAt || undefined,
         spinsRemainingToday: nextSpinInfo.spinsRemainingToday,
         processingTime,
         metadata: {
@@ -222,7 +222,7 @@ export class SpinWheelUseCase {
       // Verificar límite diario
       const today = new Date().toISOString().split('T')[0];
       const spinsToday = context.userHistory.spinsToday.filter(spin => 
-        spin.timestamp.toISOString().startsWith(today)
+        spin.timestamp.toISOString().startsWith(today || '')
       ).length;
 
       if (spinsToday >= context.limits.maxSpinsPerDay) {
@@ -320,7 +320,7 @@ export class SpinWheelUseCase {
     wheelResult: WheelResult
   ): {
     canSpinAgain: boolean;
-    nextSpinAllowedAt?: Date;
+    nextSpinAllowedAt?: Date | undefined;
     spinsRemainingToday: number;
   } {
     const now = new Date();
@@ -353,7 +353,7 @@ export class SpinWheelUseCase {
 
     return {
       canSpinAgain,
-      nextSpinAllowedAt,
+      nextSpinAllowedAt: nextSpinAllowedAt || undefined,
       spinsRemainingToday
     };
   }
@@ -409,7 +409,7 @@ export class SpinWheelUseCase {
     // Verificar límite diario
     const today = now.toISOString().split('T')[0];
     const spinsToday = history.spinsToday.filter(spin => 
-      spin.timestamp.toISOString().startsWith(today)
+      spin.timestamp.toISOString().startsWith(today || '')
     ).length;
     
     if (spinsToday >= limits.maxSpinsPerDay) {
@@ -563,10 +563,10 @@ export class SpinWheelUseCase {
     totalSpins: number;
     totalWins: number;
     canSpin: boolean;
-    nextSpinAllowedAt?: string;
+    nextSpinAllowedAt?: string | undefined;
   }> {
     // En una implementación real, esto consultaría la base de datos
-    const history = await this.loadUserSpinHistory({ sessionId, userId });
+    const history = await this.loadUserSpinHistory({ sessionId, userId: userId || undefined });
     const limits = this.getSpinLimits();
     
     const canSpin = this.checkCanSpin(history, limits);
@@ -595,7 +595,7 @@ export class SpinWheelUseCase {
       totalSpins: history.totalSpins,
       totalWins,
       canSpin,
-      nextSpinAllowedAt
+      nextSpinAllowedAt: nextSpinAllowedAt || undefined
     };
   }
 
@@ -705,7 +705,7 @@ export class SpinWheelUseCase {
     // En una implementación real, esto resetearía los contadores en BD
     logger.info('Límites de giro reseteados', {
       sessionId,
-      userId,
+      userId: userId || undefined,
       resetBy: 'admin'
     });
 

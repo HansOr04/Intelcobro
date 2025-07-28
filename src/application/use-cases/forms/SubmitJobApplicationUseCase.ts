@@ -48,9 +48,9 @@ interface ApplicationProcessingContext {
   submission: FormSubmission;
   position: JobPosition;
   applicantEmail: Email;
-  applicantPhone?: PhoneNumber;
+  applicantPhone?: PhoneNumber | undefined;
   adminEmails: string[];
-  resumeAnalysis?: ResumeAnalysis;
+  resumeAnalysis?: ResumeAnalysis | undefined;
   validationResults: ValidationResult[];
 }
 
@@ -155,194 +155,6 @@ export class SubmitJobApplicationUseCase {
         }
       };
       
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
-      
-      logger.error('Error al procesar aplicación de trabajo', error as Error, {
-        position: request.position,
-        applicantEmail: request.email,
-        processingTime
-      });
-      
-      throw error;
-    }
-  }
-
-  /**
-   * Valida la solicitud de aplicación
-   */
-  private async validateRequest(request: JobApplicationRequestDTO): Promise<void> {
-    const errors: string[] = [];
-
-    // Validar campos requeridos
-    if (!request.sessionId?.trim()) errors.push('sessionId es requerido');
-    if (!request.email?.trim()) errors.push('email es requerido');
-    if (!request.fullName?.trim()) errors.push('fullName es requerido');
-    if (!request.position?.trim()) errors.push('position es requerido');
-    if (!request.experience?.trim()) errors.push('experience es requerido');
-
-    // Validar email
-    try {
-      new Email(request.email);
-    } catch {
-      errors.push('email debe tener un formato válido');
-    }
-
-    // Validar teléfono si está presente
-    if (request.phoneNumber) {
-      try {
-        new PhoneNumber(request.phoneNumber);
-      } catch {
-        errors.push('phoneNumber debe tener un formato válido');
-      }
-    }
-
-    // Validar longitudes
-    if (request.fullName && request.fullName.length < 2) {
-      errors.push('fullName debe tener al menos 2 caracteres');
-    }
-
-    if (request.experience && request.experience.length < 10) {
-      errors.push('experience debe tener al menos 10 caracteres');
-    }
-
-    // Validar URLs si están presentes
-    const urlFields = ['portfolio', 'linkedIn', 'github'];
-    urlFields.forEach(field => {
-      const value = (request as any)[field];
-      if (value) {
-        try {
-          new URL(value);
-        } catch {
-          errors.push(`${field} debe ser una URL válida`);
-        }
-      }
-    });
-
-    if (errors.length > 0) {
-      throw ValidationException.multiple(
-        errors.map(error => ({
-          type: ValidationException.prototype.constructor.name as any,
-          field: 'general',
-          message: error
-        }))
-      );
-    }
-  }
-
-  /**
-   * Crea el contexto de procesamiento
-   */
-  private async createProcessingContext(
-    request: JobApplicationRequestDTO,
-    options: SubmitJobApplicationOptions
-  ): Promise<ApplicationProcessingContext> {
-    // Crear entidades de valor
-    const applicantEmail = new Email(request.email);
-    const applicantPhone = request.phoneNumber ? new PhoneNumber(request.phoneNumber) : undefined;
-
-    // Crear submission
-    const submission = FormSubmission.createJobApplication(
-      request.sessionId,
-      applicantEmail,
-      {
-        fullName: request.fullName,
-        position: request.position,
-        experience: request.experience,
-        skills: request.skills,
-        education: request.education,
-        availability: request.availability,
-        portfolio: request.portfolio,
-        coverLetter: request.coverLetter,
-        salary: request.salary,
-        relocate: request.relocate,
-        remoteWork: request.remoteWork,
-        startDate: request.startDate,
-        references: request.references,
-        linkedIn: request.linkedIn,
-        github: request.github,
-        resume: request.resume,
-        additionalInfo: request.additionalInfo
-      },
-      applicantPhone
-    );
-
-    // Marcar como en procesamiento
-    submission.markAsProcessing();
-
-    // Obtener información de la posición
-    const position = await this.getPositionInfo(request.position);
-
-    // Validar posición si está habilitado
-    if (options.validatePosition && !position.isActive) {
-      throw ValidationException.businessRuleViolation(
-        `La posición '${request.position}' no está disponible actualmente`,
-        'position'
-      );
-    }
-
-    // Analizar currículum si está disponible y el servicio de IA está presente
-    let resumeAnalysis: ResumeAnalysis | undefined;
-    if (options.processResume && request.resume && this.aiService) {
-      resumeAnalysis = await this.analyzeResume(request, position);
-    }
-
-    // Realizar validaciones adicionales
-    const validationResults = await this.performAdditionalValidations(request, position);
-
-    return {
-      submission,
-      position,
-      applicantEmail,
-      applicantPhone,
-      adminEmails: options.adminEmails || this.defaultAdminEmails,
-      resumeAnalysis,
-      validationResults
-    };
-  }
-
-  /**
-   * Procesa la aplicación
-   */
-  private async processApplication(
-    context: ApplicationProcessingContext,
-    options: SubmitJobApplicationOptions
-  ): Promise<void> {
-    // Añadir notas basadas en el análisis
-    if (context.resumeAnalysis) {
-      const notes = this.generateProcessingNotes(context.resumeAnalysis);
-      context.submission.addNotes(notes);
-    }
-
-    // Determinar si necesita follow-up urgente
-    if (this.requiresUrgentFollowUp(context)) {
-      context.submission.scheduleFollowUp();
-    }
-  }
-
-  /**
-   * Envía los emails correspondientes
-   */
-  private async sendEmails(
-    context: ApplicationProcessingContext,
-    options: SubmitJobApplicationOptions
-  ): Promise<{ confirmation: boolean; notification: boolean }> {
-    const results = { confirmation: false, notification: false };
-
-    try {
-      // Enviar email de confirmación al aplicante
-      if (options.sendConfirmationEmail !== false) {
-        await this.sendConfirmationEmail(context);
-        context.submission.markEmailAsSent();
-        results.confirmation = true;
-      }
-
-      // Enviar notificación a administradores
-      if (options.sendNotificationEmail !== false) {
-        await this.sendNotificationEmail(context);
-        results.notification = true;
-      }
-
     } catch (error) {
       logger.warn('Error al enviar emails, continuando procesamiento', {
         applicationId: context.submission.id,
@@ -654,11 +466,11 @@ Proporciona un análisis con:
       sessionId: submission.sessionId,
       email: submission.email.value,
       fullName: submission.formData.fullName,
-      phoneNumber: submission.phoneNumber?.value,
+      phoneNumber: submission.phoneNumber?.value || undefined,
       position: submission.formData.position,
       status: submission.status,
       submittedAt: submission.timestamp.toISOString(),
-      processedAt: submission.processedAt?.toISOString(),
+      processedAt: submission.processedAt?.toISOString() || undefined,
       emailSent: submission.emailSent,
       followUpScheduled: submission.followUpScheduled,
       applicationNumber: this.generateApplicationNumber(submission)

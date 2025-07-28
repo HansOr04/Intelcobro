@@ -1,10 +1,56 @@
+// src/application/use-cases/forms/SubmitDiscountFormUseCase.ts
+
+import { FormSubmission, FormSubmissionStatus } from '../../../domain/entities/FormSubmission';
+import { FormType } from '../../../domain/enums/FormType';
+import { Email } from '../../../domain/value-objects/Email';
+import { PhoneNumber } from '../../../domain/value-objects/PhoneNumber';
+import { DiscountPercentage } from '../../../domain/value-objects/DiscountPercentage';
+import { DiscountFormRequestDTO, DiscountFormResponseDTO } from '../../dto/DiscountFormDTO';
+import { IEmailService } from '../../interfaces/services/IEmailService';
+import { IAIService } from '../../interfaces/services/IAIService';
+import { ValidationException } from '../../exceptions/ValidationException';
+import { EmailServiceException } from '../../exceptions/EmailServiceException';
+import { logger } from '../../../shared/utils/Logger';
+import { randomGenerator } from '../../../shared/utils/RandomGenerator';
+
+/**
+ * Opciones para el caso de uso de solicitud de descuento
+ */
+export interface SubmitDiscountFormOptions {
+  sendNotificationEmail?: boolean;
+  sendConfirmationEmail?: boolean;
+  validateWheelDiscount?: boolean;
+  generateQuotation?: boolean;
+  scheduleFollowUp?: boolean;
+  adminEmails?: string[];
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Resultado del envío de solicitud de descuento
+ */
+export interface SubmitDiscountFormResult {
+  request: DiscountFormResponseDTO;
+  quotationNumber: string;
+  discountApplied: DiscountInfo;
+  emailsSent: {
+    confirmation: boolean;
+    notification: boolean;
+  };
+  estimatedValue: EstimatedValue;
+  validationWarnings: string[];
+  processingTime: number;
+  nextSteps: string[];
+  metadata?: Record<string, any>;
+}
+
 /**
  * Información de descuento aplicado
  */
 interface DiscountInfo {
   percentage: number;
   source: 'wheel' | 'budget' | 'company_size' | 'urgency' | 'none';
-  code?: string;
+  code?: string | undefined;
   description: string;
   validUntil: Date;
 }
@@ -38,8 +84,8 @@ interface DiscountRequestProcessingContext {
   submission: FormSubmission;
   service: ServiceInfo;
   customerEmail: Email;
-  customerPhone?: PhoneNumber;
-  wheelDiscount?: WheelDiscountInfo;
+  customerPhone?: PhoneNumber | undefined;
+  wheelDiscount?: WheelDiscountInfo | undefined;
   calculatedDiscount: DiscountInfo;
   estimatedValue: EstimatedValue;
   adminEmails: string[];
@@ -218,7 +264,7 @@ export class SubmitDiscountFormUseCase {
     if (errors.length > 0) {
       throw ValidationException.multiple(
         errors.map(error => ({
-          type: ValidationException.prototype.constructor.name as any,
+          type: ValidationErrorType.BUSINESS_RULE_VIOLATION,
           field: 'general',
           message: error
         }))
@@ -287,8 +333,8 @@ export class SubmitDiscountFormUseCase {
       submission,
       service,
       customerEmail,
-      customerPhone,
-      wheelDiscount,
+      customerPhone: customerPhone || undefined,
+      wheelDiscount: wheelDiscount || undefined,
       calculatedDiscount,
       estimatedValue,
       adminEmails: options.adminEmails || this.defaultAdminEmails,
@@ -324,7 +370,7 @@ export class SubmitDiscountFormUseCase {
   private calculateDiscount(
     request: DiscountFormRequestDTO,
     service: ServiceInfo,
-    wheelDiscount?: WheelDiscountInfo
+    wheelDiscount?: WheelDiscountInfo | undefined
   ): DiscountInfo {
     let percentage = 0;
     let source: DiscountInfo['source'] = 'none';
@@ -375,7 +421,7 @@ export class SubmitDiscountFormUseCase {
     return {
       percentage,
       source,
-      code,
+      code: code || undefined,
       description,
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 días
     };
@@ -707,8 +753,8 @@ export class SubmitDiscountFormUseCase {
     const emailContent = {
       to: context.adminEmails,
       subject: `Nueva solicitud: ${context.service.name} - ${context.estimatedValue.finalPrice.toLocaleString()} - ${context.submission.formData.fullName}`,
-      html: this.generateNotificationEmailHtml(context, quotationNumber),
-      text: this.generateNotificationEmailText(context, quotationNumber)
+      html: this.generateConfirmationEmailHtml(context, quotationNumber), // Usar método correcto
+      text: this.generateConfirmationEmailText(context, quotationNumber) // Usar método correcto
     };
 
     await this.emailService.sendEmail(emailContent);
@@ -793,11 +839,11 @@ export class SubmitDiscountFormUseCase {
       sessionId: submission.sessionId,
       email: submission.email.value,
       fullName: submission.formData.fullName,
-      phoneNumber: submission.phoneNumber?.value,
+      phoneNumber: submission.phoneNumber?.value || undefined,
       serviceInterest: submission.formData.serviceInterest,
       status: submission.status,
       submittedAt: submission.timestamp.toISOString(),
-      processedAt: submission.processedAt?.toISOString(),
+      processedAt: submission.processedAt?.toISOString() || undefined,
       emailSent: submission.emailSent,
       followUpScheduled: submission.followUpScheduled,
       quotationNumber: this.generateQuotationNumber(submission),
@@ -864,55 +910,27 @@ Cotización #${quotationNumber}
 Servicio: ${context.service.name}
 Precio base: ${context.estimatedValue.basePrice.toLocaleString()}
 ${context.calculatedDiscount.percentage > 0 ? `
-Descuento aplicado:// src/application/use-cases/forms/SubmitDiscountFormUseCase.ts
+Descuento aplicado: ${context.calculatedDiscount.percentage}% (${context.calculatedDiscount.description})
+Ahorro: ${context.estimatedValue.discountAmount.toLocaleString()}
+` : ''}
+Precio final: ${context.estimatedValue.finalPrice.toLocaleString()}
+Timeline estimado: ${context.service.estimatedTimeline}
 
-import { FormSubmission, FormSubmissionStatus } from '../../../domain/entities/FormSubmission';
-import { FormType } from '../../../domain/enums/FormType';
-import { Email } from '../../../domain/value-objects/Email';
-import { PhoneNumber } from '../../../domain/value-objects/PhoneNumber';
-import { DiscountPercentage } from '../../../domain/value-objects/DiscountPercentage';
-import { DiscountFormRequestDTO, DiscountFormResponseDTO } from '../../dto/DiscountFormDTO';
-import { IEmailService } from '../../interfaces/services/IEmailService';
-import { IAIService } from '../../interfaces/services/IAIService';
-import { ValidationException } from '../../exceptions/ValidationException';
-import { EmailServiceException } from '../../exceptions/EmailServiceException';
-import { logger } from '../../../shared/utils/Logger';
-import { randomGenerator } from '../../../shared/utils/RandomGenerator';
+${context.calculatedDiscount.code ? `
+Código de descuento: ${context.calculatedDiscount.code}
+Válido hasta: ${context.calculatedDiscount.validUntil.toLocaleDateString()}
+` : ''}
 
-/**
- * Opciones para el caso de uso de solicitud de descuento
- */
-export interface SubmitDiscountFormOptions {
-  sendNotificationEmail?: boolean;
-  sendConfirmationEmail?: boolean;
-  validateWheelDiscount?: boolean;
-  generateQuotation?: boolean;
-  scheduleFollowUp?: boolean;
-  adminEmails?: string[];
-  metadata?: Record<string, any>;
+Próximos pasos:
+- Nuestro equipo te contactará para afinar los detalles
+- Prepararemos una propuesta detallada
+- Coordinaremos una reunión para discutir el proyecto
+
+¿Tienes preguntas? Responde a este email o llámanos.
+
+Saludos,
+Equipo de Ventas
+Intelcobro
+    `.trim();
+  }
 }
-
-/**
- * Resultado del envío de solicitud de descuento
- */
-export interface SubmitDiscountFormResult {
-  request: DiscountFormResponseDTO;
-  quotationNumber: string;
-  discountApplied: DiscountInfo;
-  emailsSent: {
-    confirmation: boolean;
-    notification: boolean;
-  };
-  estimatedValue: EstimatedValue;
-  validationWarnings: string[];
-  processingTime: number;
-  nextSteps: string[];
-  metadata?: Record<string, any>;
-}
-
-/**
- * Información de descuento aplicado
- */
-interface DiscountInfo {
-  percentage: number;
-  source: 'wheel' | 'budget' | 'company

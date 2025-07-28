@@ -25,10 +25,10 @@ export class FormSubmission {
   private readonly _email: Email;
   private readonly _formData: Record<string, any>;
   private readonly _timestamp: Date;
-  private readonly _userIp?: string;
-  private readonly _userAgent?: string;
+  private readonly _userIp?: string | undefined;
+  private readonly _userAgent?: string | undefined;
   private _status: FormSubmissionStatus;
-  private _phoneNumber?: PhoneNumber;
+  private _phoneNumber?: PhoneNumber | undefined;
   private _processedAt?: Date;
   private _errorMessage?: string;
   private _emailSent: boolean;

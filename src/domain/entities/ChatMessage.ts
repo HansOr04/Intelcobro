@@ -12,10 +12,10 @@ export class ChatMessage {
   private readonly _message: string;
   private readonly _timestamp: Date;
   private readonly _isVoice: boolean;
-  private readonly _metadata?: Record<string, any>;
-  private readonly _userId?: string;
-  private readonly _audioUrl?: string;
-  private readonly _audioData?: Buffer;
+  private readonly _metadata?: Record<string, any> | undefined;
+  private readonly _userId?: string | undefined;
+  private readonly _audioUrl?: string | undefined;
+  private readonly _audioData?: Buffer | undefined;
 
   constructor(
     id: string,

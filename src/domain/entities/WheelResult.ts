@@ -14,9 +14,9 @@ export class WheelResult {
   private readonly _spinAngle: number;
   private readonly _spinDuration: number;
   private readonly _timestamp: Date;
-  private readonly _userIp?: string;
-  private readonly _userId?: string;
-  private readonly _metadata?: Record<string, any>;
+  private readonly _userIp?: string | undefined;
+  private readonly _userId?: string | undefined;
+  private readonly _metadata?: Record<string, any> | undefined;
   private _isRedeemed: boolean;
   private _redeemedAt?: Date;
   private _expiresAt: Date;
