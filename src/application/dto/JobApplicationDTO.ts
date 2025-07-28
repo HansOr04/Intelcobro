@@ -289,9 +289,7 @@ export class JobApplicationDTOValidator {
       email: dto.email.trim().toLowerCase(),
       fullName: dto.fullName.trim(),
       position: dto.position.trim(),
-      experience: dto.experience.trim(),
-      relocate: dto.relocate,
-      remoteWork: dto.remoteWork
+      experience: dto.experience.trim()
     };
 
     // Solo agregar campos opcionales si tienen valor
@@ -302,6 +300,8 @@ export class JobApplicationDTOValidator {
     if (dto.portfolio?.trim()) sanitized.portfolio = dto.portfolio.trim();
     if (dto.coverLetter?.trim()) sanitized.coverLetter = dto.coverLetter.trim();
     if (dto.salary?.trim()) sanitized.salary = dto.salary.trim();
+    if (dto.relocate !== undefined) sanitized.relocate = dto.relocate;
+    if (dto.remoteWork !== undefined) sanitized.remoteWork = dto.remoteWork;
     if (dto.startDate?.trim()) sanitized.startDate = dto.startDate.trim();
     if (dto.references?.trim()) sanitized.references = dto.references.trim();
     if (dto.linkedIn?.trim()) sanitized.linkedIn = dto.linkedIn.trim();
@@ -346,13 +346,9 @@ export class JobApplicationDTOHelper {
       applicationNumber: JobApplicationDTOHelper.generateApplicationNumber(applicationData.id, applicationData.timestamp)
     };
 
-    if (applicationData.phoneNumber) {
-      response.phoneNumber = applicationData.phoneNumber;
-    }
-
-    if (applicationData.processedAt) {
-      response.processedAt = applicationData.processedAt.toISOString();
-    }
+    // Solo agregar campos opcionales si tienen valor
+    if (applicationData.phoneNumber) response.phoneNumber = applicationData.phoneNumber;
+    if (applicationData.processedAt) response.processedAt = applicationData.processedAt.toISOString();
 
     return response;
   }

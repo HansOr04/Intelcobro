@@ -140,7 +140,7 @@ export interface DiscountFormValidationDTO {
   requiredFields: string[];
   optionalFields: string[];
   discountEligible: boolean;
-  estimatedDiscount?: number;
+  estimatedDiscount?: number | undefined;
 }
 
 /**
@@ -240,7 +240,7 @@ export class DiscountFormDTOValidator {
 
     // Determinar elegibilidad para descuento
     let discountEligible = false;
-    let estimatedDiscount = 0;
+    let estimatedDiscount: number | undefined = undefined;
 
     if (dto.discountCode) {
       discountEligible = true;
@@ -261,7 +261,7 @@ export class DiscountFormDTOValidator {
       requiredFields,
       optionalFields,
       discountEligible,
-      estimatedDiscount: discountEligible ? estimatedDiscount : undefined
+      estimatedDiscount
     };
   }
 
@@ -323,7 +323,8 @@ export class DiscountFormDTOValidator {
       warnings,
       requiredFields: [],
       optionalFields: ['serviceInterest', 'status', 'companySize', 'budgetRange'],
-      discountEligible: false
+      discountEligible: false,
+      estimatedDiscount: undefined
     };
   }
 
@@ -331,27 +332,31 @@ export class DiscountFormDTOValidator {
    * Sanitiza los datos de la solicitud de descuento
    */
   static sanitizeDiscountFormRequest(dto: DiscountFormRequestDTO): DiscountFormRequestDTO {
-    return {
+    const sanitized: DiscountFormRequestDTO = {
       sessionId: dto.sessionId.trim(),
       email: dto.email.trim().toLowerCase(),
       fullName: dto.fullName.trim(),
-      phoneNumber: dto.phoneNumber?.trim() || undefined,
       serviceInterest: dto.serviceInterest.trim(),
-      companyName: dto.companyName?.trim() || undefined,
-      companySize: dto.companySize?.trim() || undefined,
-      budget: dto.budget?.trim() || undefined,
-      timeline: dto.timeline?.trim() || undefined,
-      projectDescription: dto.projectDescription?.trim() || undefined,
-      currentSolution: dto.currentSolution?.trim() || undefined,
-      painPoints: dto.painPoints?.trim() || undefined,
-      goals: dto.goals?.trim() || undefined,
-      decisionMakers: dto.decisionMakers?.trim() || undefined,
-      additionalInfo: dto.additionalInfo?.trim() || undefined,
-      wheelResultId: dto.wheelResultId?.trim() || undefined,
-      discountCode: dto.discountCode?.trim().toUpperCase() || undefined,
-      referralSource: dto.referralSource?.trim() || undefined,
       agreeToMarketing: dto.agreeToMarketing || false
     };
+
+    // Solo agregar campos opcionales si tienen valor
+    if (dto.phoneNumber?.trim()) sanitized.phoneNumber = dto.phoneNumber.trim();
+    if (dto.companyName?.trim()) sanitized.companyName = dto.companyName.trim();
+    if (dto.companySize?.trim()) sanitized.companySize = dto.companySize.trim();
+    if (dto.budget?.trim()) sanitized.budget = dto.budget.trim();
+    if (dto.timeline?.trim()) sanitized.timeline = dto.timeline.trim();
+    if (dto.projectDescription?.trim()) sanitized.projectDescription = dto.projectDescription.trim();
+    if (dto.currentSolution?.trim()) sanitized.currentSolution = dto.currentSolution.trim();
+    if (dto.painPoints?.trim()) sanitized.painPoints = dto.painPoints.trim();
+    if (dto.goals?.trim()) sanitized.goals = dto.goals.trim();
+    if (dto.decisionMakers?.trim()) sanitized.decisionMakers = dto.decisionMakers.trim();
+    if (dto.additionalInfo?.trim()) sanitized.additionalInfo = dto.additionalInfo.trim();
+    if (dto.wheelResultId?.trim()) sanitized.wheelResultId = dto.wheelResultId.trim();
+    if (dto.discountCode?.trim()) sanitized.discountCode = dto.discountCode.trim().toUpperCase();
+    if (dto.referralSource?.trim()) sanitized.referralSource = dto.referralSource.trim();
+
+    return sanitized;
   }
 }
 
@@ -377,23 +382,27 @@ export class DiscountFormDTOHelper {
     discountApplied?: string;
     estimatedValue?: number;
   }): DiscountFormResponseDTO {
-    return {
+    const response: DiscountFormResponseDTO = {
       id: requestData.id,
       sessionId: requestData.sessionId,
       email: requestData.email,
       fullName: requestData.fullName,
-      phoneNumber: requestData.phoneNumber || undefined,
       serviceInterest: requestData.serviceInterest,
       status: requestData.status,
       submittedAt: requestData.timestamp.toISOString(),
-      processedAt: requestData.processedAt?.toISOString() || undefined,
       emailSent: requestData.emailSent,
       followUpScheduled: requestData.followUpScheduled,
-      discountApplied: requestData.discountApplied || undefined,
       quotationNumber: DiscountFormDTOHelper.generateQuotationNumber(requestData.id, requestData.timestamp),
-      estimatedValue: requestData.estimatedValue || undefined,
       validUntil: DiscountFormDTOHelper.calculateValidUntil().toISOString()
     };
+
+    // Solo agregar campos opcionales si tienen valor
+    if (requestData.phoneNumber) response.phoneNumber = requestData.phoneNumber;
+    if (requestData.processedAt) response.processedAt = requestData.processedAt.toISOString();
+    if (requestData.discountApplied) response.discountApplied = requestData.discountApplied;
+    if (requestData.estimatedValue !== undefined) response.estimatedValue = requestData.estimatedValue;
+
+    return response;
   }
 
   /**
@@ -443,7 +452,7 @@ export class DiscountFormDTOHelper {
     urgentFollowUp: boolean;
     wheelResultId?: string;
   }): DiscountFormSummaryDTO {
-    return {
+    const summary: DiscountFormSummaryDTO = {
       id: requestData.id,
       quotationNumber: DiscountFormDTOHelper.generateQuotationNumber(requestData.id, requestData.timestamp),
       fullName: requestData.fullName,
@@ -451,11 +460,15 @@ export class DiscountFormDTOHelper {
       serviceInterest: requestData.serviceInterest,
       status: requestData.status,
       submittedAt: requestData.timestamp.toISOString(),
-      estimatedValue: requestData.estimatedValue || undefined,
-      discountApplied: requestData.discountApplied || undefined,
       urgentFollowUp: requestData.urgentFollowUp,
       hasWheelDiscount: !!requestData.wheelResultId
     };
+
+    // Solo agregar campos opcionales si tienen valor
+    if (requestData.estimatedValue !== undefined) summary.estimatedValue = requestData.estimatedValue;
+    if (requestData.discountApplied) summary.discountApplied = requestData.discountApplied;
+
+    return summary;
   }
 
   /**

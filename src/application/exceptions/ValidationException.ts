@@ -49,7 +49,7 @@ export interface ValidationContext {
  */
 export class ValidationException extends Error {
   public readonly errors: ValidationError[];
-  public readonly context?: ValidationContext;
+  public readonly context?: ValidationContext | undefined;
   public readonly statusCode: number;
   public readonly isOperational: boolean;
 
@@ -90,7 +90,7 @@ export class ValidationException extends Error {
     }
 
     if (errors.length === 1) {
-      return errors[0].message;
+      return errors[0]?.message || 'Error de validación';
     }
 
     return `Validation failed with ${errors.length} errors: ${errors.map(e => e.field).join(', ')}`;
@@ -152,7 +152,7 @@ export class ValidationException extends Error {
       if (!summary[error.field]) {
         summary[error.field] = [];
       }
-      summary[error.field].push(error.message);
+      summary[error.field]?.push(error.message);
     });
 
     return summary;

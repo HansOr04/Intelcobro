@@ -260,4 +260,66 @@ export interface IAIService {
   /**
    * Detecta el idioma de un texto
    */
-  detectLanguage
+  detectLanguage(text: string): Promise<{
+    language: string;
+    confidence: number;
+    supportedLanguages: string[];
+  }>;
+
+  /**
+   * Genera texto creativo basado en un prompt
+   */
+  generateCreativeText(
+    prompt: string,
+    style?: 'formal' | 'casual' | 'creative' | 'technical',
+    config?: AIGenerationConfig
+  ): Promise<AIResponse>;
+
+  /**
+   * Mejora un texto existente
+   */
+  improveText(
+    text: string,
+    improvements: string[],
+    config?: AIGenerationConfig
+  ): Promise<AIResponse>;
+
+  /**
+   * Genera sugerencias de preguntas frecuentes
+   */
+  generateFAQSuggestions(
+    context: string,
+    config?: AIGenerationConfig
+  ): Promise<Array<{ question: string; answer: string }>>;
+
+  /**
+   * Evalúa la calidad de un texto
+   */
+  evaluateTextQuality(
+    text: string,
+    criteria: string[]
+  ): Promise<{
+    overallScore: number;
+    criteriaScores: Record<string, number>;
+    suggestions: string[];
+  }>;
+
+  /**
+   * Verifica disponibilidad del servicio
+   */
+  isAvailable(): Promise<boolean>;
+
+  /**
+   * Obtiene información del modelo actual
+   */
+  getModelInfo(): Promise<{
+    name: string;
+    version: string;
+    capabilities: string[];
+    limits: {
+      maxTokens: number;
+      maxContext: number;
+      rateLimit: number;
+    };
+  }>;
+}

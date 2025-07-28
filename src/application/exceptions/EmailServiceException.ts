@@ -65,10 +65,10 @@ export interface EmailSendContext {
 export class EmailServiceException extends Error {
   public readonly errorType: EmailServiceErrorType;
   public readonly details: EmailServiceErrorDetails;
-  public readonly context?: EmailSendContext;
+  public readonly context?: EmailSendContext | undefined;
   public readonly statusCode: number;
   public readonly isRetryable: boolean;
-  public readonly retryAfter?: number;
+  public readonly retryAfter?: number | undefined;
 
   constructor(
     errorType: EmailServiceErrorType,
@@ -298,13 +298,16 @@ export class EmailServiceException extends Error {
     retryAfter?: number,
     context?: EmailSendContext
   ): EmailServiceException {
+    const details: Partial<EmailServiceErrorDetails> = { provider };
+    
+    if (retryAfter !== undefined) {
+      details.retryAfter = retryAfter;
+    }
+
     return new EmailServiceException(
       EmailServiceErrorType.API_RATE_LIMIT,
       `Rate limit excedido para ${provider}`,
-      {
-        provider,
-        retryAfter
-      },
+      details,
       context
     );
   }
@@ -382,14 +385,19 @@ export class EmailServiceException extends Error {
       ? `Email rebotado (${email}): ${bounceReason}`
       : `Email rebotado: ${email}`;
 
+    const details: Partial<EmailServiceErrorDetails> = {
+      provider,
+      recipient: email
+    };
+
+    if (bounceReason) {
+      details.bounceReason = bounceReason;
+    }
+
     return new EmailServiceException(
       EmailServiceErrorType.BOUNCE,
       message,
-      {
-        provider,
-        recipient: email,
-        bounceReason
-      },
+      details,
       context
     );
   }
@@ -502,16 +510,18 @@ export class EmailServiceException extends Error {
     template?: string;
     metadata?: Record<string, any>;
   }): EmailSendContext {
-    return {
-      formSubmissionId: data.formSubmissionId,
-      sessionId: data.sessionId,
-      userId: data.userId,
-      emailType: data.emailType,
-      recipients: data.recipients,
-      sender: data.sender,
-      subject: data.subject,
-      template: data.template,
-      metadata: data.metadata
-    };
+    const context: EmailSendContext = {};
+    
+    if (data.formSubmissionId) context.formSubmissionId = data.formSubmissionId;
+    if (data.sessionId) context.sessionId = data.sessionId;
+    if (data.userId) context.userId = data.userId;
+    if (data.emailType) context.emailType = data.emailType;
+    if (data.recipients) context.recipients = data.recipients;
+    if (data.sender) context.sender = data.sender;
+    if (data.subject) context.subject = data.subject;
+    if (data.template) context.template = data.template;
+    if (data.metadata) context.metadata = data.metadata;
+
+    return context;
   }
 }

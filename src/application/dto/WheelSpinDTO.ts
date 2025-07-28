@@ -228,7 +228,7 @@ export class WheelSpinDTOValidator {
 
     // Verificar cooldown entre giros
     if (userSpinHistory.length > 0) {
-      const lastSpin = new Date(userSpinHistory[0].timestamp);
+      const lastSpin = new Date(userSpinHistory[0]?.timestamp || '');
       const timeSinceLastSpin = now.getTime() - lastSpin.getTime();
       
       if (timeSinceLastSpin < limits.cooldownBetweenSpins) {

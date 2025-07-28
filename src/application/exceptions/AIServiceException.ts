@@ -32,6 +32,7 @@ export interface AIServiceErrorDetails {
   retryAfter?: number;
   originalError?: any;
   timestamp: Date;
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -54,10 +55,10 @@ export interface AIRequestContext {
 export class AIServiceException extends Error {
   public readonly errorType: AIServiceErrorType;
   public readonly details: AIServiceErrorDetails;
-  public readonly context?: AIRequestContext;
+  public readonly context?: AIRequestContext | undefined;
   public readonly statusCode: number;
   public readonly isRetryable: boolean;
-  public readonly retryAfter?: number;
+  public readonly retryAfter?: number | undefined;
 
   constructor(
     errorType: AIServiceErrorType,
@@ -210,14 +211,19 @@ export class AIServiceException extends Error {
     originalError?: any,
     context?: AIRequestContext
   ): AIServiceException {
+    const details: Partial<AIServiceErrorDetails> = {
+      provider,
+      originalError
+    };
+    
+    if (endpoint) {
+      details.endpoint = endpoint;
+    }
+
     return new AIServiceException(
       AIServiceErrorType.API_CONNECTION_ERROR,
       `No se pudo conectar al servicio de IA de ${provider}`,
-      {
-        provider,
-        endpoint,
-        originalError
-      },
+      details,
       context
     );
   }
@@ -249,13 +255,16 @@ export class AIServiceException extends Error {
     retryAfter?: number,
     context?: AIRequestContext
   ): AIServiceException {
+    const details: Partial<AIServiceErrorDetails> = { provider };
+    
+    if (retryAfter !== undefined) {
+      details.retryAfter = retryAfter;
+    }
+
     return new AIServiceException(
       AIServiceErrorType.API_RATE_LIMIT,
       `Rate limit excedido para ${provider}`,
-      {
-        provider,
-        retryAfter
-      },
+      details,
       context
     );
   }
@@ -473,15 +482,17 @@ export class AIServiceException extends Error {
     maxTokens?: number;
     metadata?: Record<string, any>;
   }): AIRequestContext {
-    return {
-      messageId: data.messageId,
-      sessionId: data.sessionId,
-      userId: data.userId,
-      prompt: data.prompt?.substring(0, 100), // Solo los primeros 100 caracteres para logs
-      model: data.model,
-      temperature: data.temperature,
-      maxTokens: data.maxTokens,
-      metadata: data.metadata
-    };
+    const context: AIRequestContext = {};
+    
+    if (data.messageId) context.messageId = data.messageId;
+    if (data.sessionId) context.sessionId = data.sessionId;
+    if (data.userId) context.userId = data.userId;
+    if (data.prompt) context.prompt = data.prompt.substring(0, 100); // Solo los primeros 100 caracteres para logs
+    if (data.model) context.model = data.model;
+    if (data.temperature !== undefined) context.temperature = data.temperature;
+    if (data.maxTokens !== undefined) context.maxTokens = data.maxTokens;
+    if (data.metadata) context.metadata = data.metadata;
+
+    return context;
   }
 }
