@@ -25,7 +25,7 @@ export interface SpinWheelOptions {
 export interface SpinWheelResult {
   result: WheelSpinResponseDTO;
   canSpinAgain: boolean;
-  nextSpinAllowedAt?: Date;
+  nextSpinAllowedAt?: Date | undefined; // Explicitly allow undefined
   spinsRemainingToday: number;
   processingTime: number;
   metadata?: Record<string, any>;
@@ -48,7 +48,7 @@ interface UserSpinHistory {
   sessionId: string;
   spinsToday: WheelResult[];
   spinsInSession: WheelResult[];
-  lastSpinAt?: Date;
+  lastSpinAt?: Date | undefined; // Explicitly allow undefined
   totalSpins: number;
 }
 
@@ -320,7 +320,7 @@ export class SpinWheelUseCase {
     wheelResult: WheelResult
   ): {
     canSpinAgain: boolean;
-    nextSpinAllowedAt?: Date;
+    nextSpinAllowedAt?: Date | undefined; // Explicitly allow undefined
     spinsRemainingToday: number;
   } {
     const now = new Date();
@@ -336,7 +336,7 @@ export class SpinWheelUseCase {
     const reachedDailyLimit = spinsToday >= context.limits.maxSpinsPerDay;
     
     let canSpinAgain = !reachedSessionLimit && !reachedDailyLimit;
-    let nextSpinAllowedAt: Date | undefined;
+    let nextSpinAllowedAt: Date | undefined = undefined;
     
     if (canSpinAgain) {
       nextSpinAllowedAt = nextSpinByCooldown;
@@ -436,7 +436,7 @@ export class SpinWheelUseCase {
    */
   private toResponseDTO(
     wheelResult: WheelResult,
-    nextSpinAllowedAt?: Date
+    nextSpinAllowedAt?: Date | undefined
   ): WheelSpinResponseDTO {
     return {
       id: wheelResult.id,
@@ -551,7 +551,7 @@ export class SpinWheelUseCase {
   /**
    * Obtiene historial de giros del usuario
    */
-  async getUserSpinHistory(sessionId: string, userId?: string): Promise<{
+  async getUserSpinHistory(sessionId: string, userId?: string | undefined): Promise<{
     spins: Array<{
       id: string;
       section: WheelSection;
@@ -563,14 +563,14 @@ export class SpinWheelUseCase {
     totalSpins: number;
     totalWins: number;
     canSpin: boolean;
-    nextSpinAllowedAt?: string;
+    nextSpinAllowedAt?: string | undefined; // Explicitly allow undefined
   }> {
     // En una implementación real, esto consultaría la base de datos
     const history = await this.loadUserSpinHistory({ sessionId, userId });
     const limits = this.getSpinLimits();
     
     const canSpin = this.checkCanSpin(history, limits);
-    let nextSpinAllowedAt: string | undefined;
+    let nextSpinAllowedAt: string | undefined = undefined;
     
     if (!canSpin && history.lastSpinAt) {
       const cooldownRemaining = this.calculateCooldownRemaining(history, limits);
@@ -691,8 +691,8 @@ export class SpinWheelUseCase {
    */
   async resetSpinLimits(
     sessionId: string,
-    userId?: string,
-    adminKey?: string
+    userId?: string | undefined,
+    adminKey?: string | undefined
   ): Promise<{ success: boolean; message: string }> {
     // Validar clave de administrador
     if (adminKey !== process.env.ADMIN_RESET_KEY) {

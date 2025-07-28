@@ -50,7 +50,7 @@ export interface SubmitDiscountFormResult {
 interface DiscountInfo {
   percentage: number;
   source: 'wheel' | 'budget' | 'company_size' | 'urgency' | 'none';
-  code?: string;
+  code?: string | undefined; // Explicitly allow undefined
   description: string;
   validUntil: Date;
 }
@@ -84,8 +84,8 @@ interface DiscountRequestProcessingContext {
   submission: FormSubmission;
   service: ServiceInfo;
   customerEmail: Email;
-  customerPhone?: PhoneNumber;
-  wheelDiscount?: WheelDiscountInfo;
+  customerPhone?: PhoneNumber | undefined; // Explicitly allow undefined
+  wheelDiscount?: WheelDiscountInfo | undefined; // Explicitly allow undefined
   calculatedDiscount: DiscountInfo;
   estimatedValue: EstimatedValue;
   adminEmails: string[];
@@ -315,7 +315,7 @@ export class SubmitDiscountFormUseCase {
     const service = await this.getServiceInfo(request.serviceInterest);
 
     // Validar descuento de rueda si está presente
-    let wheelDiscount: WheelDiscountInfo | undefined;
+    let wheelDiscount: WheelDiscountInfo | undefined = undefined;
     if (options.validateWheelDiscount && request.discountCode) {
       wheelDiscount = await this.validateWheelDiscount(request.discountCode, request.wheelResultId);
     }
@@ -370,12 +370,12 @@ export class SubmitDiscountFormUseCase {
   private calculateDiscount(
     request: DiscountFormRequestDTO,
     service: ServiceInfo,
-    wheelDiscount?: WheelDiscountInfo
+    wheelDiscount?: WheelDiscountInfo | undefined
   ): DiscountInfo {
     let percentage = 0;
     let source: DiscountInfo['source'] = 'none';
     let description = 'Sin descuento aplicable';
-    let code: string | undefined;
+    let code: string | undefined = undefined;
 
     // Prioridad 1: Descuento de rueda
     if (wheelDiscount && wheelDiscount.isValid) {
@@ -839,11 +839,11 @@ export class SubmitDiscountFormUseCase {
       sessionId: submission.sessionId,
       email: submission.email.value,
       fullName: submission.formData.fullName,
-      phoneNumber: submission.phoneNumber?.value,
+      phoneNumber: submission.phoneNumber?.value || undefined,
       serviceInterest: submission.formData.serviceInterest,
       status: submission.status,
       submittedAt: submission.timestamp.toISOString(),
-      processedAt: submission.processedAt?.toISOString(),
+      processedAt: submission.processedAt?.toISOString() || undefined,
       emailSent: submission.emailSent,
       followUpScheduled: submission.followUpScheduled,
       quotationNumber: this.generateQuotationNumber(submission),

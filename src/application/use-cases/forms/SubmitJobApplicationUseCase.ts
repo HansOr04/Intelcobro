@@ -48,9 +48,9 @@ interface ApplicationProcessingContext {
   submission: FormSubmission;
   position: JobPosition;
   applicantEmail: Email;
-  applicantPhone?: PhoneNumber;
+  applicantPhone?: PhoneNumber | undefined; // Explicitly allow undefined
   adminEmails: string[];
-  resumeAnalysis?: ResumeAnalysis;
+  resumeAnalysis?: ResumeAnalysis | undefined; // Explicitly allow undefined
   validationResults: ValidationResult[];
 }
 
@@ -259,7 +259,7 @@ export class SubmitJobApplicationUseCase {
     const position = await this.getPositionInfo(request.position);
 
     // Analizar currículum si está habilitado
-    let resumeAnalysis: ResumeAnalysis | undefined;
+    let resumeAnalysis: ResumeAnalysis | undefined = undefined;
     if (options.processResume && this.aiService) {
       try {
         resumeAnalysis = await this.analyzeResume(request, position);
@@ -637,11 +637,11 @@ Proporciona un análisis con:
       sessionId: submission.sessionId,
       email: submission.email.value,
       fullName: submission.formData.fullName,
-      phoneNumber: submission.phoneNumber?.value,
+      phoneNumber: submission.phoneNumber?.value || undefined,
       position: submission.formData.position,
       status: submission.status,
       submittedAt: submission.timestamp.toISOString(),
-      processedAt: submission.processedAt?.toISOString(),
+      processedAt: submission.processedAt?.toISOString() || undefined,
       emailSent: submission.emailSent,
       followUpScheduled: submission.followUpScheduled,
       applicationNumber: this.generateApplicationNumber(submission)

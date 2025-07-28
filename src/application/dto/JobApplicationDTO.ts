@@ -7,23 +7,23 @@ export interface JobApplicationRequestDTO {
   sessionId: string;
   email: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber?: string | undefined;
   position: string;
   experience: string;
-  skills?: string;
-  education?: string;
-  availability?: string;
-  portfolio?: string;
-  coverLetter?: string;
-  salary?: string;
-  relocate?: boolean;
-  remoteWork?: boolean;
-  startDate?: string;
-  references?: string;
-  linkedIn?: string;
-  github?: string;
-  resume?: string; // Base64 encoded file or URL
-  additionalInfo?: string;
+  skills?: string | undefined;
+  education?: string | undefined;
+  availability?: string | undefined;
+  portfolio?: string | undefined;
+  coverLetter?: string | undefined;
+  salary?: string | undefined;
+  relocate?: boolean | undefined;
+  remoteWork?: boolean | undefined;
+  startDate?: string | undefined;
+  references?: string | undefined;
+  linkedIn?: string | undefined;
+  github?: string | undefined;
+  resume?: string | undefined; // Base64 encoded file or URL
+  additionalInfo?: string | undefined;
 }
 
 /**
@@ -34,11 +34,11 @@ export interface JobApplicationResponseDTO {
   sessionId: string;
   email: string;
   fullName: string;
-  phoneNumber?: string | undefined; // Hacer explícito que puede ser undefined
+  phoneNumber?: string | undefined;
   position: string;
   status: string;
   submittedAt: string;
-  processedAt?: string | undefined; // Hacer explícito que puede ser undefined
+  processedAt?: string | undefined;
   emailSent: boolean;
   followUpScheduled: boolean;
   applicationNumber: string;
@@ -74,18 +74,18 @@ export interface JobApplicationSummaryDTO {
  * DTO para filtros de búsqueda de aplicaciones
  */
 export interface JobApplicationSearchDTO {
-  position?: string;
-  status?: string;
-  experienceLevel?: string;
-  startDate?: string;
-  endDate?: string;
-  skills?: string[];
-  availability?: string;
-  remoteWork?: boolean;
-  limit?: number;
-  offset?: number;
-  sortBy?: 'submittedAt' | 'fullName' | 'position' | 'status';
-  sortOrder?: 'asc' | 'desc';
+  position?: string | undefined;
+  status?: string | undefined;
+  experienceLevel?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  skills?: string[] | undefined;
+  availability?: string | undefined;
+  remoteWork?: boolean | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  sortBy?: 'submittedAt' | 'fullName' | 'position' | 'status' | undefined;
+  sortOrder?: 'asc' | 'desc' | undefined;
 }
 
 /**
@@ -125,7 +125,7 @@ export interface JobPositionConfigDTO {
   remote: boolean;
   requirements: string[];
   preferredSkills: string[];
-  salaryRange?: { min: number; max: number };
+  salaryRange?: { min: number; max: number } | undefined;
   description: string;
   isActive: boolean;
 }
@@ -325,11 +325,11 @@ export class JobApplicationDTOHelper {
     sessionId: string;
     email: string;
     fullName: string;
-    phoneNumber?: string;
+    phoneNumber?: string | undefined;
     position: string;
     status: string;
     timestamp: Date;
-    processedAt?: Date;
+    processedAt?: Date | undefined;
     emailSent: boolean;
     followUpScheduled: boolean;
   }): JobApplicationResponseDTO {

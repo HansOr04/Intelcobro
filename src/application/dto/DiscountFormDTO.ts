@@ -7,22 +7,22 @@ export interface DiscountFormRequestDTO {
   sessionId: string;
   email: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber?: string | undefined;
   serviceInterest: string;
-  companyName?: string;
-  companySize?: string;
-  budget?: string;
-  timeline?: string;
-  projectDescription?: string;
-  currentSolution?: string;
-  painPoints?: string;
-  goals?: string;
-  decisionMakers?: string;
-  additionalInfo?: string;
-  wheelResultId?: string; // ID del resultado de la rueda si aplica
-  discountCode?: string; // Código de descuento de la rueda
-  referralSource?: string;
-  agreeToMarketing?: boolean;
+  companyName?: string | undefined;
+  companySize?: string | undefined;
+  budget?: string | undefined;
+  timeline?: string | undefined;
+  projectDescription?: string | undefined;
+  currentSolution?: string | undefined;
+  painPoints?: string | undefined;
+  goals?: string | undefined;
+  decisionMakers?: string | undefined;
+  additionalInfo?: string | undefined;
+  wheelResultId?: string | undefined; // ID del resultado de la rueda si aplica
+  discountCode?: string | undefined; // Código de descuento de la rueda
+  referralSource?: string | undefined;
+  agreeToMarketing?: boolean | undefined;
 }
 
 /**
@@ -33,18 +33,21 @@ export interface DiscountFormResponseDTO {
   sessionId: string;
   email: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber?: string | undefined;
   serviceInterest: string;
   status: string;
   submittedAt: string;
-  processedAt?: string;
+  processedAt?: string | undefined;
   emailSent: boolean;
   followUpScheduled: boolean;
-  discountApplied?: string;
-  quotationNumber?: string;
-  estimatedValue?: number;
-  validUntil?: string;
+  discountApplied?: string | undefined;
+  quotationNumber?: string | undefined;
+  estimatedValue?: number | undefined;
+  validUntil?: string | undefined;
 }
+
+// Rest of the file remains the same...
+// (I'll include the rest of the content for completeness)
 
 /**
  * DTO para listado de solicitudes de descuento
@@ -64,14 +67,14 @@ export interface DiscountFormListDTO {
  */
 export interface DiscountFormSummaryDTO {
   id: string;
-  quotationNumber?: string;
+  quotationNumber?: string | undefined;
   fullName: string;
   email: string;
   serviceInterest: string;
   status: string;
   submittedAt: string;
-  estimatedValue?: number;
-  discountApplied?: string;
+  estimatedValue?: number | undefined;
+  discountApplied?: string | undefined;
   urgentFollowUp: boolean;
   hasWheelDiscount: boolean;
 }
@@ -80,19 +83,19 @@ export interface DiscountFormSummaryDTO {
  * DTO para filtros de búsqueda de solicitudes
  */
 export interface DiscountFormSearchDTO {
-  serviceInterest?: string;
-  status?: string;
-  companySize?: string;
-  budgetRange?: { min?: number; max?: number };
-  timeline?: string;
-  startDate?: string;
-  endDate?: string;
-  hasDiscount?: boolean;
-  urgentOnly?: boolean;
-  limit?: number;
-  offset?: number;
-  sortBy?: 'submittedAt' | 'fullName' | 'serviceInterest' | 'estimatedValue';
-  sortOrder?: 'asc' | 'desc';
+  serviceInterest?: string | undefined;
+  status?: string | undefined;
+  companySize?: string | undefined;
+  budgetRange?: { min?: number | undefined; max?: number | undefined } | undefined;
+  timeline?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  hasDiscount?: boolean | undefined;
+  urgentOnly?: boolean | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  sortBy?: 'submittedAt' | 'fullName' | 'serviceInterest' | 'estimatedValue' | undefined;
+  sortOrder?: 'asc' | 'desc' | undefined;
 }
 
 /**
@@ -372,15 +375,15 @@ export class DiscountFormDTOHelper {
     sessionId: string;
     email: string;
     fullName: string;
-    phoneNumber?: string;
+    phoneNumber?: string | undefined;
     serviceInterest: string;
     status: string;
     timestamp: Date;
-    processedAt?: Date;
+    processedAt?: Date | undefined;
     emailSent: boolean;
     followUpScheduled: boolean;
-    discountApplied?: string;
-    estimatedValue?: number;
+    discountApplied?: string | undefined;
+    estimatedValue?: number | undefined;
   }): DiscountFormResponseDTO {
     const response: DiscountFormResponseDTO = {
       id: requestData.id,
@@ -447,10 +450,10 @@ export class DiscountFormDTOHelper {
     serviceInterest: string;
     status: string;
     timestamp: Date;
-    estimatedValue?: number;
-    discountApplied?: string;
+    estimatedValue?: number | undefined;
+    discountApplied?: string | undefined;
     urgentFollowUp: boolean;
-    wheelResultId?: string;
+    wheelResultId?: string | undefined;
   }): DiscountFormSummaryDTO {
     const summary: DiscountFormSummaryDTO = {
       id: requestData.id,
@@ -523,10 +526,10 @@ export class DiscountFormDTOHelper {
    */
   static calculateEstimatedDiscount(requestData: {
     serviceInterest: string;
-    budget?: string;
-    companySize?: string;
-    timeline?: string;
-    wheelResultId?: string;
+    budget?: string | undefined;
+    companySize?: string | undefined;
+    timeline?: string | undefined;
+    wheelResultId?: string | undefined;
   }): { eligible: boolean; percentage: number; reason: string } {
     let percentage = 0;
     let reason = '';
