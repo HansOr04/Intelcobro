@@ -6,7 +6,7 @@ import { ChatMessageRequestDTO, ChatMessageResponseDTO } from '../../dto/ChatMes
 import { IAIService, AIMessageContext } from '../../interfaces/services/IAIService';
 import { ITextToSpeechService } from '../../interfaces/services/ITextToSpeechService';
 import { ValidationException } from '../../exceptions/ValidationException';
-import { AIServiceException } from '../../exceptions/AIServiceException';
+import { AIServiceException, AIRequestContext } from '../../exceptions/AIServiceException';
 import { logger } from '../../../shared/utils/Logger';
 import { randomGenerator } from '../../../shared/utils/RandomGenerator';
 
@@ -14,13 +14,13 @@ import { randomGenerator } from '../../../shared/utils/RandomGenerator';
  * Opciones para el caso de uso de envío de mensaje
  */
 export interface SendMessageOptions {
-  generateVoiceResponse?: boolean;
-  includeContext?: boolean;
-  saveMessage?: boolean;
-  logInteraction?: boolean;
-  maxResponseLength?: number;
-  temperature?: number;
-  metadata?: Record<string, any>;
+  generateVoiceResponse?: boolean | undefined;
+  includeContext?: boolean | undefined;
+  saveMessage?: boolean | undefined;
+  logInteraction?: boolean | undefined;
+  maxResponseLength?: number | undefined;
+  temperature?: number | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
@@ -97,26 +97,26 @@ export class SendMessageUseCase {
       const userMessage = await this.processUserMessage(context, options);
       
       // Generar respuesta del asistente
-      const assistantResponse = await this.generateAssistantResponse(context, options);
+      const assistantMessage = await this.generateAssistantResponse(context, options);
       
       // Generar audio si está habilitado
-      const voiceGenerated = await this.generateVoiceResponse(assistantResponse, context, options);
+      const voiceGenerated = await this.generateVoiceResponse(assistantMessage, context, options);
       
       // Guardar mensajes si está habilitado
       if (options.saveMessage !== false) {
-        await this.saveMessages(userMessage, assistantResponse);
+        await this.saveMessages(userMessage, assistantMessage);
       }
       
       // Log de la interacción si está habilitado
       if (options.logInteraction !== false) {
-        this.logInteraction(userMessage, assistantResponse, context);
+        this.logInteraction(userMessage, assistantMessage, context);
       }
       
       const processingTime = Date.now() - startTime;
       
       return {
         userMessage: this.toResponseDTO(userMessage),
-        assistantResponse: this.toResponseDTO(assistantResponse),
+        assistantResponse: this.toResponseDTO(assistantMessage),
         processingTime,
         tokensUsed: context.processingMetadata.tokensUsed,
         voiceGenerated,
@@ -310,11 +310,13 @@ export class SendMessageUseCase {
         throw error;
       }
       
-      throw AIServiceException.unknown('openai', error, {
+      const aiContext: AIRequestContext = {
         messageId: context.userMessage.id,
         sessionId: context.userMessage.sessionId,
-        userId: context.userMessage.userId || undefined
-      });
+        ...(context.userMessage.userId && { userId: context.userMessage.userId })
+      };
+
+      throw AIServiceException.unknown('openai', error, aiContext);
     }
   }
 
@@ -359,7 +361,6 @@ export class SendMessageUseCase {
       const audioUrl = `https://audio.intelcobro.com/${assistantMessage.id}.mp3`;
       
       // Actualizar el mensaje con la información de audio
-      // (En una implementación real, esto requeriría métodos para actualizar la entidad)
       context.processingMetadata.audioGenerated = true;
       context.processingMetadata.audioUrl = audioUrl;
       context.processingMetadata.audioDuration = ttsResult.duration;
@@ -507,17 +508,29 @@ export class SendMessageUseCase {
    * Convierte mensaje a DTO de respuesta
    */
   private toResponseDTO(message: ChatMessage): ChatMessageResponseDTO {
-    return {
+    const response: ChatMessageResponseDTO = {
       id: message.id,
       sessionId: message.sessionId,
       type: message.type,
       message: message.message,
       timestamp: message.timestamp.toISOString(),
-      isVoice: message.isVoice,
-      audioUrl: message.audioUrl,
-      metadata: message.metadata,
-      userId: message.userId
+      isVoice: message.isVoice
     };
+
+    // Solo agregar propiedades opcionales si existen
+    if (message.audioUrl) {
+      response.audioUrl = message.audioUrl;
+    }
+
+    if (message.metadata) {
+      response.metadata = message.metadata;
+    }
+
+    if (message.userId) {
+      response.userId = message.userId;
+    }
+
+    return response;
   }
 
   /**

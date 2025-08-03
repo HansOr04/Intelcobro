@@ -532,10 +532,9 @@ export class SubmitDiscountFormUseCase {
     }
 
     const match = discountCode.match(/INTEL(\d+)/);
-    if (!match) {
+    if (!match || !match[1]) {
       return undefined;
     }
-
     const percentage = parseInt(match[1], 10);
     
     return {

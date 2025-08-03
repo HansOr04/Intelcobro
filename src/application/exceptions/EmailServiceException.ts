@@ -11,10 +11,12 @@ export enum EmailServiceErrorType {
   INVALID_EMAIL_ADDRESS = 'INVALID_EMAIL_ADDRESS',
   INVALID_SENDER = 'INVALID_SENDER',
   INVALID_RECIPIENT = 'INVALID_RECIPIENT',
+  INVALID_MESSAGE = 'INVALID_MESSAGE',
   EMAIL_BLOCKED = 'EMAIL_BLOCKED',
   DOMAIN_BLOCKED = 'DOMAIN_BLOCKED',
   TEMPLATE_NOT_FOUND = 'TEMPLATE_NOT_FOUND',
   TEMPLATE_ERROR = 'TEMPLATE_ERROR',
+  TEMPLATE_PROCESSING_ERROR = 'TEMPLATE_PROCESSING_ERROR',
   ATTACHMENT_TOO_LARGE = 'ATTACHMENT_TOO_LARGE',
   ATTACHMENT_INVALID = 'ATTACHMENT_INVALID',
   QUOTA_EXCEEDED = 'QUOTA_EXCEEDED',
@@ -23,6 +25,7 @@ export enum EmailServiceErrorType {
   BOUNCE = 'BOUNCE',
   COMPLAINT = 'COMPLAINT',
   SUPPRESSED = 'SUPPRESSED',
+  AUTHENTICATION_FAILED = 'AUTHENTICATION_FAILED',
   UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 }
 
@@ -102,6 +105,7 @@ export class EmailServiceException extends Error {
   private getStatusCodeForErrorType(errorType: EmailServiceErrorType): number {
     switch (errorType) {
       case EmailServiceErrorType.INVALID_API_KEY:
+      case EmailServiceErrorType.AUTHENTICATION_FAILED:
         return 401;
       case EmailServiceErrorType.API_RATE_LIMIT:
       case EmailServiceErrorType.QUOTA_EXCEEDED:
@@ -109,7 +113,9 @@ export class EmailServiceException extends Error {
       case EmailServiceErrorType.INVALID_EMAIL_ADDRESS:
       case EmailServiceErrorType.INVALID_SENDER:
       case EmailServiceErrorType.INVALID_RECIPIENT:
+      case EmailServiceErrorType.INVALID_MESSAGE:
       case EmailServiceErrorType.TEMPLATE_ERROR:
+      case EmailServiceErrorType.TEMPLATE_PROCESSING_ERROR:
       case EmailServiceErrorType.ATTACHMENT_TOO_LARGE:
       case EmailServiceErrorType.ATTACHMENT_INVALID:
         return 400;
@@ -330,6 +336,24 @@ export class EmailServiceException extends Error {
   }
 
   /**
+   * Factory method para autenticación fallida
+   */
+  static authenticationFailed(
+    provider: string,
+    reason: string,
+    context?: EmailSendContext
+  ): EmailServiceException {
+    return new EmailServiceException(
+      EmailServiceErrorType.AUTHENTICATION_FAILED,
+      `Fallo de autenticación en ${provider}: ${reason}`,
+      {
+        provider
+      },
+      context
+    );
+  }
+
+  /**
    * Factory method para email inválido
    */
   static invalidEmail(
@@ -343,6 +367,43 @@ export class EmailServiceException extends Error {
       {
         provider,
         recipient: email
+      },
+      context
+    );
+  }
+
+  /**
+   * Factory method para destinatario inválido
+   */
+  static invalidRecipient(
+    recipient: string,
+    provider?: string,
+    context?: EmailSendContext
+  ): EmailServiceException {
+    return new EmailServiceException(
+      EmailServiceErrorType.INVALID_RECIPIENT,
+      `Destinatario inválido: ${recipient}`,
+      {
+        provider: provider || 'unknown',
+        recipient
+      },
+      context
+    );
+  }
+
+  /**
+   * Factory method para mensaje inválido
+   */
+  static invalidMessage(
+    message: string,
+    provider?: string,
+    context?: EmailSendContext
+  ): EmailServiceException {
+    return new EmailServiceException(
+      EmailServiceErrorType.INVALID_MESSAGE,
+      `Mensaje inválido: ${message}`,
+      {
+        provider: provider || 'unknown'
       },
       context
     );
@@ -406,15 +467,15 @@ export class EmailServiceException extends Error {
    * Factory method para template no encontrado
    */
   static templateNotFound(
-    provider: string,
     templateId: string,
+    provider?: string,
     context?: EmailSendContext
   ): EmailServiceException {
     return new EmailServiceException(
       EmailServiceErrorType.TEMPLATE_NOT_FOUND,
       `Template no encontrado: ${templateId}`,
       {
-        provider,
+        provider: provider || 'unknown',
         templateId
       },
       context
@@ -436,6 +497,43 @@ export class EmailServiceException extends Error {
       {
         provider,
         templateId
+      },
+      context
+    );
+  }
+
+  /**
+   * Factory method para error de procesamiento de template
+   */
+  static templateProcessingError(
+    templateId: string,
+    error: string,
+    provider?: string,
+    context?: EmailSendContext
+  ): EmailServiceException {
+    return new EmailServiceException(
+      EmailServiceErrorType.TEMPLATE_PROCESSING_ERROR,
+      `Error procesando template ${templateId}: ${error}`,
+      {
+        provider: provider || 'unknown',
+        templateId
+      },
+      context
+    );
+  }
+
+  /**
+   * Factory method para quota excedida
+   */
+  static quotaExceeded(
+    provider: string,
+    context?: EmailSendContext
+  ): EmailServiceException {
+    return new EmailServiceException(
+      EmailServiceErrorType.QUOTA_EXCEEDED,
+      `Quota excedida para ${provider}`,
+      {
+        provider
       },
       context
     );
@@ -466,6 +564,35 @@ export class EmailServiceException extends Error {
   }
 
   /**
+   * Factory method para error desconocido
+   */
+  static unknown(
+    provider: string,
+    originalError: any,
+    additionalMetadata?: Record<string, any>,
+    context?: EmailSendContext
+  ): EmailServiceException {
+    const message = originalError?.message || 'Error desconocido';
+    
+    const baseDetails: Partial<EmailServiceErrorDetails> = {
+      provider,
+      originalError
+    };
+
+    // Combinar con metadata adicional si existe
+    const finalDetails = additionalMetadata ? 
+      { ...baseDetails, ...additionalMetadata } : 
+      baseDetails;
+    
+    return new EmailServiceException(
+      EmailServiceErrorType.UNKNOWN_ERROR,
+      `Error desconocido en ${provider}: ${message}`,
+      finalDetails,
+      context
+    );
+  }
+
+  /**
    * Factory method desde error de Resend
    */
   static fromResendError(error: any, context?: EmailSendContext): EmailServiceException {
@@ -485,15 +612,7 @@ export class EmailServiceException extends Error {
     }
     
     // Error genérico
-    return new EmailServiceException(
-      EmailServiceErrorType.UNKNOWN_ERROR,
-      `Error de Resend: ${error.message}`,
-      {
-        provider,
-        originalError: error
-      },
-      context
-    );
+    return EmailServiceException.unknown(provider, error, undefined, context);
   }
 
   /**

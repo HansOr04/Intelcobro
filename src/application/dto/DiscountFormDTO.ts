@@ -46,9 +46,6 @@ export interface DiscountFormResponseDTO {
   validUntil?: string | undefined;
 }
 
-// Rest of the file remains the same...
-// (I'll include the rest of the content for completeness)
-
 /**
  * DTO para listado de solicitudes de descuento
  */

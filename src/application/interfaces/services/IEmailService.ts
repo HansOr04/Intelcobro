@@ -6,7 +6,7 @@ import { FormType } from '../../../domain/enums/FormType';
  * Configuración de email
  */
 export interface EmailConfig {
-  from: string;
+  from?: string;
   replyTo?: string;
   tags?: string[];
   headers?: Record<string, string>;
@@ -24,15 +24,59 @@ export interface EmailAttachment {
   contentType: string;
   encoding?: string;
   size?: number;
+  disposition?: string;
 }
 
 /**
- * Destinatario de email
+ * Mensaje de email
  */
-export interface EmailRecipient {
-  email: string;
-  name?: string;
-  type?: 'to' | 'cc' | 'bcc';
+export interface EmailMessage {
+  to: string | string[];
+  subject: string;
+  html?: string;
+  text?: string;
+  from?: string;
+  replyTo?: string;
+  cc?: string[];
+  bcc?: string[];
+  attachments?: EmailAttachment[];
+}
+
+/**
+ * Resultado del envío de email
+ */
+export interface EmailResult {
+  success: boolean;
+  messageId: string;
+  provider: string;
+  timestamp: Date;
+  deliveryTime: number;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Opciones para envío en lote
+ */
+export interface BulkEmailOptions {
+  batchSize?: number;
+  delayBetweenBatches?: number;
+}
+
+/**
+ * Resultado del envío en lote
+ */
+export interface BulkEmailResult {
+  totalSent: number;
+  totalFailed: number;
+  results: EmailResult[];
+  errors: Array<{
+    to: string | string[];
+    subject: string;
+    error: string;
+    timestamp: Date;
+  }>;
+  processingTime: number;
+  batchesProcessed: number;
 }
 
 /**
@@ -42,11 +86,9 @@ export interface EmailTemplate {
   id: string;
   name: string;
   subject: string;
-  htmlContent: string;
-  textContent?: string;
+  html: string;
+  text?: string;
   variables: string[];
-  category: string;
-  isActive: boolean;
 }
 
 /**
@@ -57,268 +99,76 @@ export interface EmailTemplateVariables {
 }
 
 /**
- * Resultado del envío de email
- */
-export interface EmailSendResult {
-  messageId: string;
-  accepted: string[];
-  rejected: string[];
-  pending?: string[];
-  response?: string;
-  envelope?: {
-    from: string;
-    to: string[];
-  };
-  timestamp: Date;
-}
-
-/**
- * Estado de entrega de email
- */
-export interface EmailDeliveryStatus {
-  messageId: string;
-  email: string;
-  status: 'sent' | 'delivered' | 'bounced' | 'complained' | 'opened' | 'clicked';
-  timestamp: Date;
-  details?: string;
-  metadata?: Record<string, any>;
-}
-
-/**
- * Opciones para envío de email
- */
-export interface EmailSendOptions {
-  to: string | string[] | EmailRecipient[];
-  subject: string;
-  html?: string;
-  text?: string;
-  template?: {
-    id: string;
-    variables: EmailTemplateVariables;
-  };
-  attachments?: EmailAttachment[];
-  config?: EmailConfig;
-  scheduledAt?: Date;
-  batchId?: string;
-}
-
-/**
- * Opciones para envío en lote
- */
-export interface EmailBatchSendOptions {
-  template: {
-    id: string;
-    subject: string;
-  };
-  recipients: Array<{
-    email: string;
-    name?: string;
-    variables: EmailTemplateVariables;
-  }>;
-  config?: EmailConfig;
-  batchSize?: number;
-  delayBetweenBatches?: number;
-}
-
-/**
- * Resultado del envío en lote
- */
-export interface EmailBatchSendResult {
-  batchId: string;
-  totalRecipients: number;
-  successful: number;
-  failed: number;
-  results: EmailSendResult[];
-  errors: Array<{
-    email: string;
-    error: string;
-  }>;
-}
-
-/**
- * Opciones para validación de email
- */
-export interface EmailValidationOptions {
-  checkSyntax?: boolean;
-  checkDomain?: boolean;
-  checkMx?: boolean;
-  checkDisposable?: boolean;
-  timeout?: number;
-}
-
-/**
  * Resultado de validación de email
  */
 export interface EmailValidationResult {
   email: string;
   isValid: boolean;
-  syntax: {
-    valid: boolean;
-    reason?: string;
-  };
-  domain: {
-    valid: boolean;
-    exists: boolean;
-    mxRecords?: string[];
-  };
-  disposable: {
-    isDisposable: boolean;
-    provider?: string;
-  };
-  suggestions?: string[];
+  format: 'valid' | 'invalid';
+  domain: string;
+  suggestions: string[];
+  risks: string[];
+  metadata: Record<string, any>;
 }
 
 /**
- * Estadísticas de email
+ * Estadísticas del servicio de email
  */
-export interface EmailStats {
-  sent: number;
-  delivered: number;
-  bounced: number;
-  complained: number;
-  opened: number;
-  clicked: number;
-  deliveryRate: number;
-  openRate: number;
-  clickRate: number;
+export interface EmailServiceStats {
+  provider: string;
+  emailsSent: number;
+  successRate: number;
+  averageDeliveryTime: number;
+  uptime: number;
+  lastEmailSent: Date;
+  templatesAvailable: string[];
+  quotaUsed: number;
+  quotaLimit: number;
   bounceRate: number;
   complaintRate: number;
 }
 
 /**
- * Lista de supresión
- */
-export interface SuppressionList {
-  email: string;
-  reason: 'bounce' | 'complaint' | 'unsubscribe' | 'manual';
-  addedAt: Date;
-  details?: string;
-}
-
-/**
- * Interface principal del servicio de email
+ * Interface principal del servicio de email (simplificada)
  */
 export interface IEmailService {
   /**
    * Envía un email individual
    */
-  sendEmail(options: EmailSendOptions): Promise<EmailSendResult>;
-
-  /**
-   * Envía emails en lote
-   */
-  sendBatch(options: EmailBatchSendOptions): Promise<EmailBatchSendResult>;
+  sendEmail(message: EmailMessage, config?: EmailConfig): Promise<EmailResult>;
 
   /**
    * Envía email usando una plantilla
    */
-  sendTemplate(
+  sendTemplateEmail(
     templateId: string,
-    to: string | EmailRecipient[],
-    variables: EmailTemplateVariables,
+    to: string | string[],
+    data: Record<string, any>,
     config?: EmailConfig
-  ): Promise<EmailSendResult>;
+  ): Promise<EmailResult>;
+
+  /**
+   * Envía múltiples emails
+   */
+  sendBulkEmails(
+    messages: EmailMessage[],
+    options?: BulkEmailOptions
+  ): Promise<BulkEmailResult>;
 
   /**
    * Valida una dirección de email
    */
-  validateEmail(
-    email: string,
-    options?: EmailValidationOptions
-  ): Promise<EmailValidationResult>;
+  validateEmail(email: string): Promise<EmailValidationResult>;
 
   /**
-   * Valida múltiples direcciones de email
+   * Obtiene estadísticas del servicio
    */
-  validateEmailBatch(
-    emails: string[],
-    options?: EmailValidationOptions
-  ): Promise<EmailValidationResult[]>;
-
-  /**
-   * Obtiene el estado de entrega de un email
-   */
-  getDeliveryStatus(messageId: string): Promise<EmailDeliveryStatus>;
-
-  /**
-   * Obtiene estadísticas de email para un período
-   */
-  getStats(
-    startDate: Date,
-    endDate: Date,
-    tags?: string[]
-  ): Promise<EmailStats>;
-
-  /**
-   * Gestiona la lista de supresión
-   */
-  addToSuppressionList(
-    email: string,
-    reason: 'bounce' | 'complaint' | 'unsubscribe' | 'manual',
-    details?: string
-  ): Promise<void>;
-
-  /**
-   * Remueve de la lista de supresión
-   */
-  removeFromSuppressionList(email: string): Promise<void>;
-
-  /**
-   * Verifica si un email está en la lista de supresión
-   */
-  isInSuppressionList(email: string): Promise<boolean>;
-
-  /**
-   * Obtiene la lista de supresión
-   */
-  getSuppressionList(): Promise<SuppressionList[]>;
-
-  /**
-   * Gestiona plantillas de email
-   */
-  createTemplate(template: Omit<EmailTemplate, 'id'>): Promise<EmailTemplate>;
-  updateTemplate(id: string, updates: Partial<EmailTemplate>): Promise<EmailTemplate>;
-  deleteTemplate(id: string): Promise<void>;
-  getTemplate(id: string): Promise<EmailTemplate>;
-  listTemplates(category?: string): Promise<EmailTemplate[]>;
-
-  /**
-   * Programa un email para envío futuro
-   */
-  scheduleEmail(
-    options: EmailSendOptions,
-    scheduledAt: Date
-  ): Promise<{ scheduleId: string }>;
-
-  /**
-   * Cancela un email programado
-   */
-  cancelScheduledEmail(scheduleId: string): Promise<void>;
-
-  /**
-   * Obtiene emails programados
-   */
-  getScheduledEmails(): Promise<Array<{
-    scheduleId: string;
-    scheduledAt: Date;
-    status: 'pending' | 'sent' | 'cancelled';
-    options: EmailSendOptions;
-  }>>;
+  getStats(): Promise<EmailServiceStats>;
 
   /**
    * Verifica la disponibilidad del servicio
    */
   isAvailable(): Promise<boolean>;
-
-  /**
-   * Obtiene información de la configuración actual
-   */
-  getConfig(): Promise<{
-    provider: string;
-    dailyLimit?: number;
-    usedToday?: number;
-    features: string[];
-  }>;
 }
 
 /**
@@ -336,7 +186,7 @@ export interface IFormEmailService {
     experience: string;
     resumeUrl?: string;
     adminEmails: string[];
-  }): Promise<EmailSendResult>;
+  }): Promise<EmailResult>;
 
   /**
    * Envía confirmación al aplicante
@@ -346,7 +196,7 @@ export interface IFormEmailService {
     applicantName: string;
     position: string;
     applicationNumber: string;
-  }): Promise<EmailSendResult>;
+  }): Promise<EmailResult>;
 
   /**
    * Envía notificación de solicitud de descuento
@@ -359,7 +209,7 @@ export interface IFormEmailService {
     budget?: string;
     discountCode?: string;
     adminEmails: string[];
-  }): Promise<EmailSendResult>;
+  }): Promise<EmailResult>;
 
   /**
    * Envía confirmación de solicitud de descuento
@@ -370,7 +220,7 @@ export interface IFormEmailService {
     serviceInterest: string;
     quotationNumber: string;
     discountApplied?: string;
-  }): Promise<EmailSendResult>;
+  }): Promise<EmailResult>;
 
   /**
    * Envía follow-up personalizado
@@ -381,7 +231,7 @@ export interface IFormEmailService {
     formType: FormType;
     customMessage?: string;
     attachments?: EmailAttachment[];
-  }): Promise<EmailSendResult>;
+  }): Promise<EmailResult>;
 
   /**
    * Envía recordatorio de descuento próximo a expirar
@@ -392,7 +242,7 @@ export interface IFormEmailService {
     discountCode: string;
     discountPercentage: number;
     expiresAt: Date;
-  }): Promise<EmailSendResult>;
+  }): Promise<EmailResult>;
 }
 
 /**

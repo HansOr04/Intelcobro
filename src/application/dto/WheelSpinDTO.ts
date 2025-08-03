@@ -7,10 +7,10 @@ import { WheelSection } from '../../domain/enums/WheelSection';
  */
 export interface WheelSpinRequestDTO {
   sessionId: string;
-  userId?: string | undefined; // Hacer explícito que puede ser undefined
-  userIp?: string | undefined; // Hacer explícito que puede ser undefined
-  userAgent?: string | undefined; // Hacer explícito que puede ser undefined
-  metadata?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
+  userId?: string | undefined;
+  userIp?: string | undefined;
+  userAgent?: string | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
@@ -26,9 +26,15 @@ export interface WheelSpinResponseDTO {
   timestamp: string;
   isWinning: boolean;
   resultMessage: string;
-  discountCode?: string | undefined; // Hacer explícito que puede ser undefined
-  expiresAt?: string | undefined; // Hacer explícito que puede ser undefined
-  nextSpinAllowedAt?: string | undefined; // Hacer explícito que puede ser undefined
+  discountCode?: string | undefined;
+  expiresAt?: string | undefined;
+  nextSpinAllowedAt?: string | undefined;
+  animation?: {
+    duration: number;
+    rotations: number;
+    finalAngle: number;
+  };
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -87,14 +93,14 @@ export interface WheelStatsDTO {
  * DTO para historial de giros de usuario
  */
 export interface UserSpinHistoryDTO {
-  sessionId?: string;
-  userId?: string;
+  sessionId?: string | undefined;
+  userId?: string | undefined;
   spins: WheelSpinSummaryDTO[];
   totalSpins: number;
   totalWins: number;
   totalDiscountEarned: number;
-  lastSpinAt?: string;
-  nextSpinAllowedAt?: string;
+  lastSpinAt?: string | undefined;
+  nextSpinAllowedAt?: string | undefined;
   canSpin: boolean;
 }
 
@@ -108,8 +114,8 @@ export interface WheelSpinSummaryDTO {
   timestamp: string;
   isWinning: boolean;
   isRedeemed: boolean;
-  expiresAt?: string;
-  discountCode?: string;
+  expiresAt?: string | undefined;
+  discountCode?: string | undefined;
 }
 
 /**
@@ -119,9 +125,9 @@ export interface WheelSpinValidationDTO {
   canSpin: boolean;
   errors: string[];
   warnings: string[];
-  cooldownRemaining?: number;
-  spinsRemaining?: number;
-  nextAllowedSpin?: string;
+  cooldownRemaining?: number | undefined;
+  spinsRemaining?: number | undefined;
+  nextAllowedSpin?: string | undefined;
 }
 
 /**
@@ -134,7 +140,7 @@ export interface SpinLimitsDTO {
   cooldownBetweenSpins: number;
   currentSpinsToday: number;
   currentSpinsInSession: number;
-  lastSpinAt?: string;
+  lastSpinAt?: string | undefined;
 }
 
 /**
@@ -149,17 +155,17 @@ export interface DetailedWheelResultDTO extends WheelSpinResponseDTO {
     isHighValuePrize: boolean;
   };
   userInfo: {
-    userAgent?: string;
-    userIp?: string;
+    userAgent?: string | undefined;
+    userIp?: string | undefined;
     isFirstSpin: boolean;
     totalSpinsToday: number;
   };
   redemptionInfo?: {
     isRedeemable: boolean;
-    validUntil?: string;
-    discountCode?: string;
+    validUntil?: string | undefined;
+    discountCode?: string | undefined;
     termsAndConditions: string[];
-  };
+  } | undefined;
 }
 
 /**
@@ -327,9 +333,9 @@ export class WheelSpinDTOHelper {
     timestamp: Date;
     isWinning: boolean;
     resultMessage: string;
-    discountCode?: string;
-    expiresAt?: Date;
-  }, nextSpinAllowedAt?: Date): WheelSpinResponseDTO {
+    discountCode?: string | undefined;
+    expiresAt?: Date | undefined;
+  }, nextSpinAllowedAt?: Date | undefined): WheelSpinResponseDTO {
     const response: WheelSpinResponseDTO = {
       id: spinData.id,
       sessionId: spinData.sessionId,
@@ -342,9 +348,15 @@ export class WheelSpinDTOHelper {
       resultMessage: spinData.resultMessage
     };
 
-    if (spinData.discountCode) response.discountCode = spinData.discountCode;
-    if (spinData.expiresAt) response.expiresAt = spinData.expiresAt.toISOString();
-    if (nextSpinAllowedAt) response.nextSpinAllowedAt = nextSpinAllowedAt.toISOString();
+    if (spinData.discountCode !== undefined) {
+      response.discountCode = spinData.discountCode;
+    }
+    if (spinData.expiresAt !== undefined) {
+      response.expiresAt = spinData.expiresAt.toISOString();
+    }
+    if (nextSpinAllowedAt !== undefined) {
+      response.nextSpinAllowedAt = nextSpinAllowedAt.toISOString();
+    }
 
     return response;
   }
@@ -376,8 +388,8 @@ export class WheelSpinDTOHelper {
     timestamp: Date;
     isWinning: boolean;
     isRedeemed: boolean;
-    expiresAt?: Date;
-    discountCode?: string;
+    expiresAt?: Date | undefined;
+    discountCode?: string | undefined;
   }): WheelSpinSummaryDTO {
     const summary: WheelSpinSummaryDTO = {
       id: spinData.id,
@@ -388,8 +400,12 @@ export class WheelSpinDTOHelper {
       isRedeemed: spinData.isRedeemed
     };
 
-    if (spinData.expiresAt) summary.expiresAt = spinData.expiresAt.toISOString();
-    if (spinData.discountCode) summary.discountCode = spinData.discountCode;
+    if (spinData.expiresAt !== undefined) {
+      summary.expiresAt = spinData.expiresAt.toISOString();
+    }
+    if (spinData.discountCode !== undefined) {
+      summary.discountCode = spinData.discountCode;
+    }
 
     return summary;
   }
@@ -516,5 +532,70 @@ export class WheelSpinDTOHelper {
     }
 
     return result;
+  }
+
+  /**
+   * Crea un DTO de historial vacío
+   */
+  static createEmptyHistoryDTO(sessionId?: string, userId?: string): UserSpinHistoryDTO {
+    const historyDTO: UserSpinHistoryDTO = {
+      spins: [],
+      totalSpins: 0,
+      totalWins: 0,
+      totalDiscountEarned: 0,
+      canSpin: true
+    };
+
+    // Solo asignar si no son undefined
+    if (sessionId !== undefined) {
+      historyDTO.sessionId = sessionId;
+    }
+    if (userId !== undefined) {
+      historyDTO.userId = userId;
+    }
+
+    return historyDTO;
+  }
+
+  /**
+   * Agrupa giros por fecha
+   */
+  static groupSpinsByDate(spins: WheelSpinSummaryDTO[]): Record<string, WheelSpinSummaryDTO[]> {
+    return spins.reduce((groups, spin) => {
+      const date = spin.timestamp.split('T')[0];
+      if (date && !groups[date]) {
+        groups[date] = [];
+      }
+      if (date) {
+        groups[date]!.push(spin);
+      }
+      return groups;
+    }, {} as Record<string, WheelSpinSummaryDTO[]>);
+  }
+
+  /**
+   * Calcula estadísticas básicas de giros
+   */
+  static calculateSpinStats(spins: WheelSpinSummaryDTO[]): {
+    totalSpins: number;
+    totalWins: number;
+    winRate: number;
+    totalDiscountValue: number;
+    averageDiscount: number;
+  } {
+    const totalSpins = spins.length;
+    const wins = spins.filter(spin => spin.isWinning);
+    const totalWins = wins.length;
+    const winRate = totalSpins > 0 ? (totalWins / totalSpins) * 100 : 0;
+    const totalDiscountValue = wins.reduce((sum, spin) => sum + spin.discountPercentage, 0);
+    const averageDiscount = totalWins > 0 ? totalDiscountValue / totalWins : 0;
+
+    return {
+      totalSpins,
+      totalWins,
+      winRate,
+      totalDiscountValue,
+      averageDiscount
+    };
   }
 }

@@ -21,22 +21,26 @@ export interface AIGenerationConfig {
  */
 export interface AIMessageContext {
   sessionId: string;
-  userId?: string | undefined; // Hacer explícito que puede ser undefined
-  messageHistory?: AIMessage[] | undefined; // Hacer explícito que puede ser undefined
-  userProfile?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
-  businessContext?: string | undefined; // Hacer explícito que puede ser undefined
-  language?: string | undefined; // Hacer explícito que puede ser undefined
-  metadata?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
+  userId?: string | undefined;
+  messageHistory?: AIMessage[] | undefined;
+  userProfile?: Record<string, any> | undefined;
+  businessContext?: string | undefined;
+  language?: string | undefined;
+  metadata?: Record<string, any> | undefined;
 }
+
+/**
+ * Contexto de la solicitud de IA
+ */
 export interface AIRequestContext {
-  messageId?: string | undefined; // Hacer explícito que puede ser undefined
-  sessionId?: string | undefined; // Hacer explícito que puede ser undefined
-  userId?: string | undefined; // Hacer explícito que puede ser undefined
-  prompt?: string | undefined; // Hacer explícito que puede ser undefined
-  model?: string | undefined; // Hacer explícito que puede ser undefined
-  temperature?: number | undefined; // Hacer explícito que puede ser undefined
-  maxTokens?: number | undefined; // Hacer explícito que puede ser undefined
-  metadata?: Record<string, any> | undefined; // Hacer explícito que puede ser undefined
+  messageId?: string | undefined;
+  sessionId?: string | undefined;
+  userId?: string | undefined;
+  prompt?: string | undefined;
+  model?: string | undefined;
+  temperature?: number | undefined;
+  maxTokens?: number | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
@@ -102,14 +106,57 @@ export interface ContentModerationOptions {
  */
 export interface ContentModerationResult {
   flagged: boolean;
+  confidence?: number | undefined;
   categories: Record<string, boolean>;
-  categoryScores: Record<string, number>;
-  reasons?: string[];
-  isAppropriate: boolean;
+  categoryScores?: Record<string, number> | undefined;
+  reasons?: string[] | undefined;
+  suggestion?: string | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
- * Opciones para resumen de texto
+ * Opciones para resumen de texto - ADDED MISSING INTERFACE
+ */
+export interface TextSummaryOptions {
+  maxLength?: number;
+  style?: 'concise' | 'detailed' | 'balanced';
+  language?: string;
+  model?: string;
+}
+
+/**
+ * Resultado del resumen de texto - ADDED MISSING INTERFACE
+ */
+export interface TextSummaryResult {
+  summary: string;
+  originalLength: number;
+  summaryLength: number;
+  compressionRatio: number;
+  keyPoints?: string[];
+  confidence?: number;
+  language?: string;
+}
+
+/**
+ * Estadísticas del servicio de IA - ADDED MISSING INTERFACE
+ */
+export interface AIServiceStats {
+  provider: string;
+  requestCount: number;
+  successRate: number;
+  averageResponseTime: number;
+  uptime: number;
+  lastRequestTime: Date;
+  modelsAvailable: string[];
+  rateLimits: {
+    requestsPerMinute: number;
+    tokensPerMinute: number;
+    requestsPerDay: number;
+  };
+}
+
+/**
+ * Opciones para resumen de texto - LEGACY SUPPORT
  */
 export interface TextSummarizationOptions {
   maxLength?: number;
@@ -119,7 +166,7 @@ export interface TextSummarizationOptions {
 }
 
 /**
- * Resultado del resumen de texto
+ * Resultado del resumen de texto - LEGACY SUPPORT
  */
 export interface TextSummarizationResult {
   summary: string;
@@ -194,7 +241,7 @@ export interface IAIService {
   /**
    * Genera una respuesta conversacional básica
    */
-  generateChatResponse(
+  generateChatResponse?(
     message: string,
     conversationHistory?: AIMessage[],
     config?: AIGenerationConfig
@@ -221,13 +268,13 @@ export interface IAIService {
    */
   summarizeText(
     text: string,
-    options?: TextSummarizationOptions
-  ): Promise<TextSummarizationResult>;
+    options?: TextSummaryOptions
+  ): Promise<TextSummaryResult>;
 
   /**
    * Clasifica texto en categorías predefinidas
    */
-  classifyText(
+  classifyText?(
     text: string,
     options: TextClassificationOptions
   ): Promise<TextClassificationResult>;
@@ -235,7 +282,7 @@ export interface IAIService {
   /**
    * Extrae entidades nombradas del texto
    */
-  extractEntities(
+  extractEntities?(
     text: string,
     options?: EntityExtractionOptions
   ): Promise<EntityExtractionResult>;
@@ -243,7 +290,7 @@ export interface IAIService {
   /**
    * Genera respuestas para diferentes tipos de formularios
    */
-  generateFormResponse(
+  generateFormResponse?(
     formType: string,
     formData: Record<string, any>,
     config?: AIGenerationConfig
@@ -252,7 +299,7 @@ export interface IAIService {
   /**
    * Genera contenido personalizado basado en plantillas
    */
-  generateFromTemplate(
+  generateFromTemplate?(
     templateName: string,
     variables: Record<string, any>,
     config?: AIGenerationConfig
@@ -261,7 +308,7 @@ export interface IAIService {
   /**
    * Traduce texto a otro idioma
    */
-  translateText(
+  translateText?(
     text: string,
     targetLanguage: string,
     sourceLanguage?: string
@@ -270,7 +317,7 @@ export interface IAIService {
   /**
    * Detecta el idioma de un texto
    */
-  detectLanguage(text: string): Promise<{
+  detectLanguage?(text: string): Promise<{
     language: string;
     confidence: number;
     supportedLanguages: string[];
@@ -279,7 +326,7 @@ export interface IAIService {
   /**
    * Genera texto creativo basado en un prompt
    */
-  generateCreativeText(
+  generateCreativeText?(
     prompt: string,
     style?: 'formal' | 'casual' | 'creative' | 'technical',
     config?: AIGenerationConfig
@@ -288,7 +335,7 @@ export interface IAIService {
   /**
    * Mejora un texto existente
    */
-  improveText(
+  improveText?(
     text: string,
     improvements: string[],
     config?: AIGenerationConfig
@@ -297,7 +344,7 @@ export interface IAIService {
   /**
    * Genera sugerencias de preguntas frecuentes
    */
-  generateFAQSuggestions(
+  generateFAQSuggestions?(
     context: string,
     config?: AIGenerationConfig
   ): Promise<Array<{ question: string; answer: string }>>;
@@ -305,7 +352,7 @@ export interface IAIService {
   /**
    * Evalúa la calidad de un texto
    */
-  evaluateTextQuality(
+  evaluateTextQuality?(
     text: string,
     criteria: string[]
   ): Promise<{
@@ -315,6 +362,11 @@ export interface IAIService {
   }>;
 
   /**
+   * Obtiene estadísticas del servicio
+   */
+  getStats?(): Promise<AIServiceStats>;
+
+  /**
    * Verifica disponibilidad del servicio
    */
   isAvailable(): Promise<boolean>;
@@ -322,7 +374,7 @@ export interface IAIService {
   /**
    * Obtiene información del modelo actual
    */
-  getModelInfo(): Promise<{
+  getModelInfo?(): Promise<{
     name: string;
     version: string;
     capabilities: string[];

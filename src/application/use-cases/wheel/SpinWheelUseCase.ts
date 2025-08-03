@@ -627,7 +627,7 @@ export class SpinWheelUseCase {
 
     // Extraer porcentaje del código
     const match = discountCode.match(/INTEL(\d+)/);
-    if (!match) {
+    if (!match || !match[1]) {
       return {
         isValid: false,
         message: 'Código de descuento no válido'

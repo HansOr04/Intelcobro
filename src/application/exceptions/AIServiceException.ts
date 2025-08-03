@@ -39,14 +39,14 @@ export interface AIServiceErrorDetails {
  * Contexto de la solicitud de IA
  */
 export interface AIRequestContext {
-  messageId?: string;
-  sessionId?: string;
-  userId?: string;
-  prompt?: string;
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-  metadata?: Record<string, any>;
+  messageId?: string | undefined;
+  sessionId?: string | undefined;
+  userId?: string | undefined;
+  prompt?: string | undefined;
+  model?: string | undefined;
+  temperature?: number | undefined;
+  maxTokens?: number | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
@@ -64,7 +64,7 @@ export class AIServiceException extends Error {
     errorType: AIServiceErrorType,
     message: string,
     details: Partial<AIServiceErrorDetails>,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ) {
     super(message);
     
@@ -209,7 +209,7 @@ export class AIServiceException extends Error {
     provider: string,
     endpoint?: string,
     originalError?: any,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     const details: Partial<AIServiceErrorDetails> = {
       provider,
@@ -234,7 +234,7 @@ export class AIServiceException extends Error {
   static timeout(
     provider: string,
     timeoutMs: number,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     return new AIServiceException(
       AIServiceErrorType.API_TIMEOUT,
@@ -253,7 +253,7 @@ export class AIServiceException extends Error {
   static rateLimitExceeded(
     provider: string,
     retryAfter?: number,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     const details: Partial<AIServiceErrorDetails> = { provider };
     
@@ -274,7 +274,7 @@ export class AIServiceException extends Error {
    */
   static quotaExceeded(
     provider: string,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     return new AIServiceException(
       AIServiceErrorType.API_QUOTA_EXCEEDED,
@@ -291,7 +291,7 @@ export class AIServiceException extends Error {
    */
   static invalidApiKey(
     provider: string,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     return new AIServiceException(
       AIServiceErrorType.INVALID_API_KEY,
@@ -310,7 +310,7 @@ export class AIServiceException extends Error {
     provider: string,
     tokenCount: number,
     maxTokens: number,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     return new AIServiceException(
       AIServiceErrorType.TOKEN_LIMIT_EXCEEDED,
@@ -330,7 +330,7 @@ export class AIServiceException extends Error {
   static contentFiltered(
     provider: string,
     reason?: string,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     const message = reason 
       ? `Contenido filtrado por ${provider}: ${reason}`
@@ -353,7 +353,7 @@ export class AIServiceException extends Error {
   static modelNotAvailable(
     provider: string,
     model: string,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     return new AIServiceException(
       AIServiceErrorType.MODEL_NOT_AVAILABLE,
@@ -372,7 +372,7 @@ export class AIServiceException extends Error {
   static invalidResponse(
     provider: string,
     reason?: string,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     const message = reason
       ? `Respuesta inválida de ${provider}: ${reason}`
@@ -394,7 +394,7 @@ export class AIServiceException extends Error {
    */
   static serviceUnavailable(
     provider: string,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     return new AIServiceException(
       AIServiceErrorType.SERVICE_UNAVAILABLE,
@@ -412,7 +412,7 @@ export class AIServiceException extends Error {
   static unknown(
     provider: string,
     originalError?: any,
-    context?: AIRequestContext
+    context?: AIRequestContext | undefined
   ): AIServiceException {
     const message = originalError?.message 
       ? `Error desconocido en ${provider}: ${originalError.message}`
@@ -432,7 +432,7 @@ export class AIServiceException extends Error {
   /**
    * Factory method desde error de OpenAI
    */
-  static fromOpenAIError(error: any, context?: AIRequestContext): AIServiceException {
+  static fromOpenAIError(error: any, context?: AIRequestContext | undefined): AIServiceException {
     const provider = 'openai';
     
     // Mapear errores específicos de OpenAI
